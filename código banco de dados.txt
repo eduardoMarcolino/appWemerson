@@ -1,584 +1,688 @@
--- ============================================================
--- INTERIOR GO
--- BANCO DE DADOS - MYSQL 8.0+
--- Baseado no MER_InteriorGo_v2.drawio
--- ============================================================
+CREATE DATABASE IF NOT EXISTS bdInteriorGo
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
 
-CREATE DATABASE IF NOT EXISTS interior_go
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
-
-USE interior_go;
+USE bdInteriorGo;
 
 
--- ============================================================
--- USUARIO
--- ============================================================
+-- =========================================================
+-- 1. USUARIO
+-- =========================================================
 
-CREATE TABLE usuario (
+CREATE TABLE USUARIO (
     userId INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(150) NOT NULL,
+
+    nome VARCHAR(100) NOT NULL,
+
     email VARCHAR(150) NOT NULL UNIQUE,
+
     senha VARCHAR(255) NOT NULL,
-    cpf VARCHAR(14) NOT NULL UNIQUE,
-    fotoPerfil VARCHAR(500),
-    dataCadastro DATETIME NOT NULL,
-    statusConta VARCHAR(50) NOT NULL
-) ENGINE=InnoDB;
+
+    cpf CHAR(11) NOT NULL UNIQUE,
+
+    fotoPerfil VARCHAR(255),
+
+    dataCadastro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    statusConta ENUM(
+        'Ativa',
+        'Inativa',
+        'Bloqueada'
+    ) NOT NULL DEFAULT 'Ativa'
+);
 
 
--- ============================================================
--- TELEFONE
--- ============================================================
+-- =========================================================
+-- 2. TELEFONE
+-- =========================================================
 
-CREATE TABLE telefone (
+CREATE TABLE TELEFONE (
     telefoneId INT AUTO_INCREMENT PRIMARY KEY,
+
     userId INT NOT NULL,
+
     numeroTelefone VARCHAR(20) NOT NULL,
 
     CONSTRAINT fk_telefone_usuario
         FOREIGN KEY (userId)
-        REFERENCES usuario(userId)
+        REFERENCES USUARIO(userId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- ENDERECO
--- ============================================================
+-- =========================================================
+-- 3. ENDERECO
+-- =========================================================
 
-CREATE TABLE endereco (
+CREATE TABLE ENDERECO (
     enderecoId INT AUTO_INCREMENT PRIMARY KEY,
+
     userId INT NOT NULL,
-    logradouro VARCHAR(200) NOT NULL,
-    numero VARCHAR(20) NOT NULL,
-    bairro VARCHAR(100) NOT NULL,
-    cidade VARCHAR(100) NOT NULL,
-    estado VARCHAR(100) NOT NULL,
-    cep VARCHAR(20),
-    complemento VARCHAR(150),
+
+    logradouro VARCHAR(150) NOT NULL,
+
+    numero VARCHAR(20),
+
+    bairro VARCHAR(100),
+
+    cidade VARCHAR(100),
+
+    estado CHAR(2),
+
+    cep VARCHAR(9),
+
+    complemento VARCHAR(100),
 
     CONSTRAINT fk_endereco_usuario
         FOREIGN KEY (userId)
-        REFERENCES usuario(userId)
+        REFERENCES USUARIO(userId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- ENDERECO_FAVORITO
--- ============================================================
+-- =========================================================
+-- 4. ENDERECO_FAVORITO
+-- =========================================================
 
-CREATE TABLE endereco_favorito (
+CREATE TABLE ENDERECO_FAVORITO (
     enderecoFavoritoId INT AUTO_INCREMENT PRIMARY KEY,
+
     userId INT NOT NULL,
-    nome VARCHAR(150) NOT NULL,
-    endereco VARCHAR(300) NOT NULL,
+
+    nome VARCHAR(100) NOT NULL,
+
+    endereco VARCHAR(255) NOT NULL,
+
     tipo ENUM(
         'Casa',
         'Trabalho',
         'Escola',
         'Hospital',
         'Outro'
-    ) NOT NULL,
+    ) NOT NULL DEFAULT 'Outro',
 
     CONSTRAINT fk_endereco_favorito_usuario
         FOREIGN KEY (userId)
-        REFERENCES usuario(userId)
+        REFERENCES USUARIO(userId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- PASSAGEIRO
--- FK_UK = FK + UNIQUE
--- Um usuario pode ser no maximo um passageiro
--- ============================================================
+-- =========================================================
+-- 5. PASSAGEIRO
+-- =========================================================
 
-CREATE TABLE passageiro (
+CREATE TABLE PASSAGEIRO (
     passageiroId INT AUTO_INCREMENT PRIMARY KEY,
+
     userId INT NOT NULL UNIQUE,
-    status VARCHAR(50) NOT NULL,
+
+    status ENUM(
+        'Ativo',
+        'Inativo'
+    ) NOT NULL DEFAULT 'Ativo',
 
     CONSTRAINT fk_passageiro_usuario
         FOREIGN KEY (userId)
-        REFERENCES usuario(userId)
+        REFERENCES USUARIO(userId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- MOTORISTA
--- FK_UK = FK + UNIQUE
--- ============================================================
+-- =========================================================
+-- 6. MOTORISTA
+-- =========================================================
 
-CREATE TABLE motorista (
+CREATE TABLE MOTORISTA (
     motoristaId INT AUTO_INCREMENT PRIMARY KEY,
+
     userId INT NOT NULL UNIQUE,
-    cnh VARCHAR(30) NOT NULL,
+
+    cnh VARCHAR(20) NOT NULL,
+
     validadeCNH DATE NOT NULL,
+
     avaliacaoMedia DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-    statusMotorista VARCHAR(50) NOT NULL,
-    areaAtendimento VARCHAR(200),
-    modoEventoAtivo BOOLEAN NOT NULL DEFAULT FALSE,
+
+    statusMotorista ENUM(
+        'Pendente',
+        'Aprovado',
+        'Bloqueado'
+    ) NOT NULL DEFAULT 'Pendente',
 
     CONSTRAINT fk_motorista_usuario
         FOREIGN KEY (userId)
-        REFERENCES usuario(userId)
+        REFERENCES USUARIO(userId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- ADMINISTRADOR
--- FK_UK = FK + UNIQUE
--- ============================================================
+-- =========================================================
+-- 7. ADMINISTRADOR
+-- =========================================================
 
-CREATE TABLE administrador (
+CREATE TABLE ADMINISTRADOR (
     administradorId INT AUTO_INCREMENT PRIMARY KEY,
+
     userId INT NOT NULL UNIQUE,
+
     nivelAcesso ENUM(
         'Master',
         'Operador'
-    ) NOT NULL,
+    ) NOT NULL DEFAULT 'Operador',
 
     CONSTRAINT fk_administrador_usuario
         FOREIGN KEY (userId)
-        REFERENCES usuario(userId)
+        REFERENCES USUARIO(userId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- VEICULO
--- ============================================================
+-- =========================================================
+-- 8. VEICULO
+-- =========================================================
 
-CREATE TABLE veiculo (
+CREATE TABLE VEICULO (
     veiculoId INT AUTO_INCREMENT PRIMARY KEY,
+
     motoristaId INT NOT NULL,
-    marca VARCHAR(100) NOT NULL,
-    modelo VARCHAR(100) NOT NULL,
+
+    marca VARCHAR(50) NOT NULL,
+
+    modelo VARCHAR(50) NOT NULL,
+
     placa VARCHAR(10) NOT NULL UNIQUE,
-    cor VARCHAR(50),
+
+    cor VARCHAR(30),
+
     anoFabricacao YEAR,
+
     anoModelo YEAR,
-    categoria VARCHAR(100),
+
+    categoria ENUM(
+        'Economico',
+        'Comfort',
+        'SUV',
+        'Moto'
+    ) NOT NULL DEFAULT 'Economico',
 
     CONSTRAINT fk_veiculo_motorista
         FOREIGN KEY (motoristaId)
-        REFERENCES motorista(motoristaId)
+        REFERENCES MOTORISTA(motoristaId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- CORRIDA_AGENDADA
--- ============================================================
+-- =========================================================
+-- 9. PONTO_INTERESSE
+-- =========================================================
+-- Cadastrado pelo administrador.
+-- Pode ser utilizado como ponto de embarque.
 
-CREATE TABLE corrida_agendada (
-    corridaAgendadaId INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE PONTO_INTERESSE (
+    pontoInteresseId INT AUTO_INCREMENT PRIMARY KEY,
+
+    administradorId INT NULL,
+
+    nome VARCHAR(100) NOT NULL,
+
+    descricao VARCHAR(255),
+
+    categoria ENUM(
+        'Hospital',
+        'Escola',
+        'Faculdade',
+        'Comercio',
+        'Transporte',
+        'Praca',
+        'Prefeitura',
+        'Saude',
+        'Outro'
+    ) NOT NULL DEFAULT 'Outro',
+
+    logradouro VARCHAR(150),
+
+    numero VARCHAR(20),
+
+    bairro VARCHAR(100),
+
+    cidade VARCHAR(100),
+
+    estado CHAR(2),
+
+    cep VARCHAR(9),
+
+    latitude DECIMAL(10,8) NOT NULL,
+
+    longitude DECIMAL(11,8) NOT NULL,
+
+    pontoEmbarque BOOLEAN NOT NULL DEFAULT FALSE,
+
+    status ENUM(
+        'Ativo',
+        'Inativo'
+    ) NOT NULL DEFAULT 'Ativo',
+
+    CONSTRAINT fk_ponto_interesse_administrador
+        FOREIGN KEY (administradorId)
+        REFERENCES ADMINISTRADOR(administradorId)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);
+
+
+-- =========================================================
+-- 10. PONTO_DE_ENCONTRO
+-- =========================================================
+-- Cadastrado pelo próprio passageiro.
+
+CREATE TABLE PONTO_DE_ENCONTRO (
+    pontoEncontroId INT AUTO_INCREMENT PRIMARY KEY,
+
     passageiroId INT NOT NULL,
+
+    nome VARCHAR(100) NOT NULL,
+
+    latitude DECIMAL(10,8) NOT NULL,
+
+    longitude DECIMAL(11,8) NOT NULL,
+
+    descricao VARCHAR(255),
+
+    cidade VARCHAR(100) NOT NULL,
+
+    CONSTRAINT fk_ponto_encontro_passageiro
+        FOREIGN KEY (passageiroId)
+        REFERENCES PASSAGEIRO(passageiroId)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
+-- =========================================================
+-- 11. EVENTO
+-- =========================================================
+-- Cadastrado pelo administrador.
+
+CREATE TABLE EVENTO (
+    eventoId INT AUTO_INCREMENT PRIMARY KEY,
+
+    administradorId INT NULL,
+
+    nome VARCHAR(150) NOT NULL,
+
+    descricao TEXT,
+
+    local VARCHAR(255) NOT NULL,
+
+    dataInicio DATETIME NOT NULL,
+
+    dataFim DATETIME NOT NULL,
+
+    categoria VARCHAR(100),
+
+    cidade VARCHAR(100) NOT NULL,
+
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT fk_evento_administrador
+        FOREIGN KEY (administradorId)
+        REFERENCES ADMINISTRADOR(administradorId)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);
+
+
+-- =========================================================
+-- 12. CORRIDA_AGENDADA
+-- =========================================================
+
+CREATE TABLE CORRIDA_AGENDADA (
+    corridaAgendadaId INT AUTO_INCREMENT PRIMARY KEY,
+
+    passageiroId INT NOT NULL,
+
     motoristaId INT NULL,
+
     pontoEncontroId INT NULL,
-    origem VARCHAR(300) NOT NULL,
-    destino VARCHAR(300) NOT NULL,
+
+    origem VARCHAR(255) NOT NULL,
+
+    destino VARCHAR(255) NOT NULL,
+
     dataHora DATETIME NOT NULL,
+
     status ENUM(
         'Agendada',
         'Confirmada',
         'EmAndamento',
         'Concluida',
         'Cancelada'
-    ) NOT NULL,
+    ) NOT NULL DEFAULT 'Agendada',
 
     CONSTRAINT fk_corrida_agendada_passageiro
         FOREIGN KEY (passageiroId)
-        REFERENCES passageiro(passageiroId)
-        ON DELETE RESTRICT
+        REFERENCES PASSAGEIRO(passageiroId)
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_corrida_agendada_motorista
         FOREIGN KEY (motoristaId)
-        REFERENCES motorista(motoristaId)
+        REFERENCES MOTORISTA(motoristaId)
         ON DELETE SET NULL
         ON UPDATE CASCADE,
 
-    CONSTRAINT fk_corrida_agendada_ponto_encontro
+    CONSTRAINT fk_corrida_agendada_ponto
         FOREIGN KEY (pontoEncontroId)
-        REFERENCES ponto_de_encontro(pontoEncontroId)
+        REFERENCES PONTO_DE_ENCONTRO(pontoEncontroId)
         ON DELETE SET NULL
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- EVENTO
--- ============================================================
+-- =========================================================
+-- 13. CORRIDA
+-- =========================================================
 
-CREATE TABLE evento (
-    eventoId INT AUTO_INCREMENT PRIMARY KEY,
-    administradorId INT NOT NULL,
-    nome VARCHAR(150) NOT NULL,
-    descricao TEXT,
-    local VARCHAR(200) NOT NULL,
-    dataInicio DATETIME NOT NULL,
-    dataFim DATETIME NOT NULL,
-    categoria VARCHAR(100),
-    cidade VARCHAR(100) NOT NULL,
-    ativo BOOLEAN NOT NULL,
-
-    CONSTRAINT fk_evento_administrador
-        FOREIGN KEY (administradorId)
-        REFERENCES administrador(administradorId)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
-
--- ============================================================
--- PONTO_DE_ENCONTRO
--- ============================================================
-
-CREATE TABLE ponto_de_encontro (
-    pontoEncontroId INT AUTO_INCREMENT PRIMARY KEY,
-    administradorId INT NOT NULL,
-    nome VARCHAR(150) NOT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    descricao TEXT,
-    cidade VARCHAR(100) NOT NULL,
-
-    CONSTRAINT fk_ponto_encontro_administrador
-        FOREIGN KEY (administradorId)
-        REFERENCES administrador(administradorId)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
-
--- ============================================================
--- PONTO_DE_INTERESSE
--- ============================================================
-
-CREATE TABLE ponto_de_interesse (
-    pontoInteresseId INT AUTO_INCREMENT PRIMARY KEY,
-    administradorId INT NOT NULL,
-    nome VARCHAR(150) NOT NULL,
-    tipo ENUM(
-        'Hospital',
-        'Escola',
-        'Mercado',
-        'Rodoviaria',
-        'Farmacia',
-        'Prefeitura',
-        'Banco',
-        'Praca'
-    ) NOT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    cidade VARCHAR(100) NOT NULL,
-
-    CONSTRAINT fk_ponto_interesse_administrador
-        FOREIGN KEY (administradorId)
-        REFERENCES administrador(administradorId)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
-
--- ============================================================
--- EMPRESA
--- ============================================================
-
-CREATE TABLE empresa (
-    empresaId INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(150) NOT NULL,
-    categoriaComercio VARCHAR(100),
-    endereco VARCHAR(300),
-    telefone VARCHAR(20)
-) ENGINE=InnoDB;
-
-
--- ============================================================
--- CORRIDA
--- ============================================================
-
-CREATE TABLE corrida (
+CREATE TABLE CORRIDA (
     corridaId INT AUTO_INCREMENT PRIMARY KEY,
 
     passageiroId INT NOT NULL,
-    motoristaId INT NOT NULL,
+
+    motoristaId INT NULL,
+
+    pontoOrigemId INT NULL,
+
+    pontoEncontroId INT NULL,
+
+    eventoId INT NULL,
 
     corridaAgendadaId INT NULL,
-    eventoId INT NULL,
-    pontoEncontroId INT NULL,
-    pontoInteresseId INT NULL,
 
-    origem VARCHAR(300) NOT NULL,
-    destino VARCHAR(300) NOT NULL,
+    origem VARCHAR(255) NOT NULL,
 
     latitudeOrigem DECIMAL(10,8) NOT NULL,
+
     longitudeOrigem DECIMAL(11,8) NOT NULL,
 
+    destino VARCHAR(255) NOT NULL,
+
     latitudeDestino DECIMAL(10,8) NOT NULL,
+
     longitudeDestino DECIMAL(11,8) NOT NULL,
 
-    distanciaKm DECIMAL(10,2) NOT NULL,
-    valorCorrida DECIMAL(10,2) NOT NULL,
+    distanciaKm DECIMAL(8,2),
 
-    beneficiarioNome VARCHAR(150),
+    valorCorrida DECIMAL(10,2),
+
+    beneficiarioNome VARCHAR(100),
+
     beneficiarioTelefone VARCHAR(20),
 
-    tokenCompartilhamento VARCHAR(500),
+    tokenCompartilhamento VARCHAR(255),
 
-    dataSolicitacao DATETIME NOT NULL,
-    dataInicio DATETIME,
-    dataFim DATETIME,
+    dataSolicitacao DATETIME
+        NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    status VARCHAR(50) NOT NULL,
+    dataInicio DATETIME NULL,
+
+    dataFim DATETIME NULL,
+
+    status ENUM(
+        'Solicitada',
+        'Aceita',
+        'MotoristaChegando',
+        'EmAndamento',
+        'Finalizada',
+        'Cancelada'
+    ) NOT NULL DEFAULT 'Solicitada',
+
+    motivoCancelamento VARCHAR(255),
 
     CONSTRAINT fk_corrida_passageiro
         FOREIGN KEY (passageiroId)
-        REFERENCES passageiro(passageiroId)
-        ON DELETE RESTRICT
+        REFERENCES PASSAGEIRO(passageiroId)
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_corrida_motorista
         FOREIGN KEY (motoristaId)
-        REFERENCES motorista(motoristaId)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
-
-    CONSTRAINT fk_corrida_agendada
-        FOREIGN KEY (corridaAgendadaId)
-        REFERENCES corrida_agendada(corridaAgendadaId)
+        REFERENCES MOTORISTA(motoristaId)
         ON DELETE SET NULL
         ON UPDATE CASCADE,
 
-    CONSTRAINT fk_corrida_evento
-        FOREIGN KEY (eventoId)
-        REFERENCES evento(eventoId)
+    CONSTRAINT fk_corrida_ponto_interesse
+        FOREIGN KEY (pontoOrigemId)
+        REFERENCES PONTO_INTERESSE(pontoInteresseId)
         ON DELETE SET NULL
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_corrida_ponto_encontro
         FOREIGN KEY (pontoEncontroId)
-        REFERENCES ponto_de_encontro(pontoEncontroId)
+        REFERENCES PONTO_DE_ENCONTRO(pontoEncontroId)
         ON DELETE SET NULL
         ON UPDATE CASCADE,
 
-    CONSTRAINT fk_corrida_ponto_interesse
-        FOREIGN KEY (pontoInteresseId)
-        REFERENCES ponto_de_interesse(pontoInteresseId)
+    CONSTRAINT fk_corrida_evento
+        FOREIGN KEY (eventoId)
+        REFERENCES EVENTO(eventoId)
         ON DELETE SET NULL
         ON UPDATE CASCADE,
 
-    -- Uma corrida pode ser originada de no maximo um agendamento
-    CONSTRAINT uk_corrida_agendada
-        UNIQUE (corridaAgendadaId)
-) ENGINE=InnoDB;
+    CONSTRAINT fk_corrida_agendada
+        FOREIGN KEY (corridaAgendadaId)
+        REFERENCES CORRIDA_AGENDADA(corridaAgendadaId)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);
 
 
--- ============================================================
--- PAGAMENTO
--- FK_UK = FK + UNIQUE
--- Uma corrida possui no maximo um pagamento
--- ============================================================
+-- =========================================================
+-- 14. PAGAMENTO
+-- =========================================================
 
-CREATE TABLE pagamento (
+CREATE TABLE PAGAMENTO (
     pagamentoId INT AUTO_INCREMENT PRIMARY KEY,
+
     corridaId INT NOT NULL UNIQUE,
+
     valorPago DECIMAL(10,2) NOT NULL,
-    formaPagamento VARCHAR(100) NOT NULL,
-    dataPagamento DATETIME,
-    statusPagamento VARCHAR(50) NOT NULL,
+
+    formaPagamento ENUM(
+        'Pix',
+        'Dinheiro',
+        'CartaoCredito',
+        'CartaoDebito',
+        'CarteiraDigital'
+    ) NOT NULL,
+
+    dataPagamento DATETIME NULL,
+
+    statusPagamento ENUM(
+        'Pendente',
+        'Pago',
+        'Cancelado'
+    ) NOT NULL DEFAULT 'Pendente',
 
     CONSTRAINT fk_pagamento_corrida
         FOREIGN KEY (corridaId)
-        REFERENCES corrida(corridaId)
+        REFERENCES CORRIDA(corridaId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- AVALIACAO
--- ============================================================
+-- =========================================================
+-- 15. AVALIACAO
+-- =========================================================
 
-CREATE TABLE avaliacao (
+CREATE TABLE AVALIACAO (
     avaliacaoId INT AUTO_INCREMENT PRIMARY KEY,
-    corridaId INT NOT NULL,
+
+    corridaId INT NOT NULL UNIQUE,
+
     passageiroId INT NOT NULL,
+
     motoristaId INT NOT NULL,
-    nota INT NOT NULL,
+
+    nota TINYINT NOT NULL,
+
     comentario TEXT,
-    dataAvaliacao DATETIME NOT NULL,
+
+    dataAvaliacao DATETIME
+        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_avaliacao_nota
+        CHECK (nota BETWEEN 1 AND 5),
 
     CONSTRAINT fk_avaliacao_corrida
         FOREIGN KEY (corridaId)
-        REFERENCES corrida(corridaId)
+        REFERENCES CORRIDA(corridaId)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_avaliacao_passageiro
         FOREIGN KEY (passageiroId)
-        REFERENCES passageiro(passageiroId)
-        ON DELETE RESTRICT
+        REFERENCES PASSAGEIRO(passageiroId)
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_avaliacao_motorista
         FOREIGN KEY (motoristaId)
-        REFERENCES motorista(motoristaId)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
-
-    CONSTRAINT chk_avaliacao_nota
-        CHECK (nota BETWEEN 1 AND 5)
-) ENGINE=InnoDB;
+        REFERENCES MOTORISTA(motoristaId)
+        ON UPDATE CASCADE
+);
 
 
--- ============================================================
--- LOCALIZACAO
--- ============================================================
+-- =========================================================
+-- 16. LOCALIZACAO
+-- =========================================================
 
-CREATE TABLE localizacao (
-    localizacaoId INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE LOCALIZACAO (
+    localizacaoId BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    corridaId INT NOT NULL,
+
     motoristaId INT NOT NULL,
+
     latitude DECIMAL(10,8) NOT NULL,
+
     longitude DECIMAL(11,8) NOT NULL,
-    dataHora DATETIME NOT NULL,
+
+    dataHora DATETIME
+        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_localizacao_corrida
+        FOREIGN KEY (corridaId)
+        REFERENCES CORRIDA(corridaId)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
     CONSTRAINT fk_localizacao_motorista
         FOREIGN KEY (motoristaId)
-        REFERENCES motorista(motoristaId)
+        REFERENCES MOTORISTA(motoristaId)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- FAVORITO_MOTORISTA
--- ============================================================
+-- =========================================================
+-- 17. FAVORITO_MOTORISTA
+-- =========================================================
 
-CREATE TABLE favorito_motorista (
+CREATE TABLE FAVORITO_MOTORISTA (
     favoritoId INT AUTO_INCREMENT PRIMARY KEY,
+
     passageiroId INT NOT NULL,
+
     motoristaId INT NOT NULL,
-    dataFavoritado DATETIME NOT NULL,
+
+    dataFavoritado DATETIME
+        NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_favorito_passageiro
         FOREIGN KEY (passageiroId)
-        REFERENCES passageiro(passageiroId)
+        REFERENCES PASSAGEIRO(passageiroId)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_favorito_motorista
         FOREIGN KEY (motoristaId)
-        REFERENCES motorista(motoristaId)
+        REFERENCES MOTORISTA(motoristaId)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
 
+    -- Evita que o mesmo passageiro favorite
+    -- o mesmo motorista várias vezes.
     CONSTRAINT uk_favorito_passageiro_motorista
         UNIQUE (passageiroId, motoristaId)
-) ENGINE=InnoDB;
+);
 
 
--- ============================================================
--- PROMOCAO
--- ============================================================
+-- =========================================================
+-- ÍNDICES
+-- =========================================================
 
-CREATE TABLE promocao (
-    promocaoId INT AUTO_INCREMENT PRIMARY KEY,
-    empresaId INT NOT NULL,
-    administradorId INT NOT NULL,
-    titulo VARCHAR(150) NOT NULL,
-    descricao TEXT,
-    desconto DECIMAL(10,2) NOT NULL,
-    inicio DATETIME NOT NULL,
-    fim DATETIME NOT NULL,
-    ativo BOOLEAN NOT NULL,
+CREATE INDEX idx_telefone_usuario
+ON TELEFONE(userId);
 
-    CONSTRAINT fk_promocao_empresa
-        FOREIGN KEY (empresaId)
-        REFERENCES empresa(empresaId)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+CREATE INDEX idx_endereco_usuario
+ON ENDERECO(userId);
 
-    CONSTRAINT fk_promocao_administrador
-        FOREIGN KEY (administradorId)
-        REFERENCES administrador(administradorId)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
-
--- ============================================================
--- INDICES
--- ============================================================
-
-CREATE INDEX idx_telefone_user
-    ON telefone(userId);
-
-CREATE INDEX idx_endereco_user
-    ON endereco(userId);
-
-CREATE INDEX idx_endereco_favorito_user
-    ON endereco_favorito(userId);
-
-CREATE INDEX idx_veiculo_motorista
-    ON veiculo(motoristaId);
+CREATE INDEX idx_endereco_favorito_usuario
+ON ENDERECO_FAVORITO(userId);
 
 CREATE INDEX idx_corrida_passageiro
-    ON corrida(passageiroId);
+ON CORRIDA(passageiroId);
 
 CREATE INDEX idx_corrida_motorista
-    ON corrida(motoristaId);
+ON CORRIDA(motoristaId);
 
 CREATE INDEX idx_corrida_status
-    ON corrida(status);
+ON CORRIDA(status);
 
-CREATE INDEX idx_corrida_data
-    ON corrida(dataSolicitacao);
+CREATE INDEX idx_corrida_ponto_interesse
+ON CORRIDA(pontoOrigemId);
+
+CREATE INDEX idx_corrida_ponto_encontro
+ON CORRIDA(pontoEncontroId);
+
+CREATE INDEX idx_corrida_evento
+ON CORRIDA(eventoId);
+
+CREATE INDEX idx_corrida_agendada
+ON CORRIDA(corridaAgendadaId);
 
 CREATE INDEX idx_corrida_agendada_passageiro
-    ON corrida_agendada(passageiroId);
+ON CORRIDA_AGENDADA(passageiroId);
 
 CREATE INDEX idx_corrida_agendada_motorista
-    ON corrida_agendada(motoristaId);
+ON CORRIDA_AGENDADA(motoristaId);
 
-CREATE INDEX idx_corrida_agendada_data
-    ON corrida_agendada(dataHora);
+CREATE INDEX idx_ponto_interesse_cidade
+ON PONTO_INTERESSE(cidade);
 
-CREATE INDEX idx_evento_administrador
-    ON evento(administradorId);
+CREATE INDEX idx_ponto_interesse_categoria
+ON PONTO_INTERESSE(categoria);
+
+CREATE INDEX idx_evento_cidade
+ON EVENTO(cidade);
 
 CREATE INDEX idx_evento_data
-    ON evento(dataInicio, dataFim);
+ON EVENTO(dataInicio, dataFim);
 
-CREATE INDEX idx_ponto_encontro_administrador
-    ON ponto_de_encontro(administradorId);
+CREATE INDEX idx_localizacao_corrida
+ON LOCALIZACAO(corridaId);
 
-CREATE INDEX idx_ponto_interesse_administrador
-    ON ponto_de_interesse(administradorId);
+CREATE INDEX idx_localizacao_motorista
+ON LOCALIZACAO(motoristaId);
 
-CREATE INDEX idx_avaliacao_corrida
-    ON avaliacao(corridaId);
+CREATE INDEX idx_favorito_passageiro
+ON FAVORITO_MOTORISTA(passageiroId);
 
-CREATE INDEX idx_avaliacao_motorista
-    ON avaliacao(motoristaId);
-
-CREATE INDEX idx_localizacao_motorista_data
-    ON localizacao(motoristaId, dataHora);
-
-CREATE INDEX idx_promocao_empresa
-    ON promocao(empresaId);
-
-CREATE INDEX idx_promocao_administrador
-    ON promocao(administradorId);
+CREATE INDEX idx_favorito_motorista
+ON FAVORITO_MOTORISTA(motoristaId);
