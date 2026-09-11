@@ -2,9 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PassageiroModel extends Model
 {
-    //
+    use HasFactory;
+
+    protected $table = 'tbpassageiro';
+
+    public $timestamps = false;
+    protected $fillable =[
+        'userId',
+        'status'
+    ];
 }

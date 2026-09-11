@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\MotoristaModel;
+use App\Http\Controllers\UserController;
 
 class MotoristaController extends Controller
 {
@@ -27,7 +29,28 @@ class MotoristaController extends Controller
      */
     public function store(Request $request)
     {
-        //
+         $userController = new UserController();
+         $motorista = new MotoristaModel();
+
+         try{
+            $user = $userController->store($request);
+            $motorista->userId = $user->id;
+            $motorista->cnh = $request->cnh;
+            $motorista->validadeCNH = $request->validadeCNH;
+            $motorista->avaliacaoMedia = $request->avaliacaoMedia;
+            $motorista->statusMotorista = "Pendente";
+
+            $motorista->save();
+
+            return response()->json([
+                'message' => 'Motorista cadastrado com sucesso!',
+                'motorista' => $motorista
+            ], 201);
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Erro ao cadastrar motorista: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

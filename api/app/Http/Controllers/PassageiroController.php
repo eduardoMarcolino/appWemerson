@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\PassageiroModel;
+use App\Http\Controllers\UserController;
 
 class PassageiroController extends Controller
 {
@@ -27,7 +29,26 @@ class PassageiroController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        
+        $userController = new UserController();
+        $passageiro = new PassageiroModel();
+
+        try{
+            $user = $userController->store($request);
+            $passageiro->userId = $user->id;
+            $passageiro->status = "Ativo";
+
+            $passageiro->save();
+
+            return response()->json([
+                'message' => 'Passageiro cadastrado com sucesso!',
+                'passageiro' => $passageiro
+            ], 201);
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Erro ao cadastrar passageiro: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

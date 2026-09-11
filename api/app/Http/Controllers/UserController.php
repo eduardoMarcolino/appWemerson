@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\UserModel;
 
 class UserController extends Controller
 {
@@ -11,7 +12,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        //
+
     }
 
     /**
@@ -27,7 +28,19 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = new UserModel();
+
+        $user ->nome = $request->input('nome');
+        $user ->email = $request->input('email');
+        $user ->senha = $request->input('senha');
+        $user ->cpf = $request->input('cpf');
+        $user ->fotoPerfil = $request->input('fotoPerfil');
+        $user ->dataCadastro = now();
+        $user ->statusConta = "Ativa";
+
+        $user->save();
+
+        return $user;
     }
 
     /**
