@@ -11,4 +11,16 @@ class EnderecoModel extends Model
     use HasFactory;
 
     protected $table = 'tbendereco';
+
+    public $timestamps = false;
+    protected $fillable =[
+        'userId',
+        'logradouro',
+        'numero',
+        'bairro',
+        'cidade',
+        'estado',
+        'cep',
+        'complemento'
+    ];
 }

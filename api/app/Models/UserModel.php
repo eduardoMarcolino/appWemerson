@@ -10,6 +10,7 @@ class UserModel extends Model
     use HasFactory;
 
     protected $table = 'tbuser';
+    protected $primaryKey = 'id';
 
     public $timestamps = false;
     protected $fillable = [

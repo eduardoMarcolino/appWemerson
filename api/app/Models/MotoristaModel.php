@@ -10,6 +10,7 @@ class MotoristaModel extends Model
     use HasFactory;
 
     protected $table = 'tbmotorista';
+    protected $primaryKey = 'motoristaId';
 
     public $timestamps = false;
     protected $fillable = [

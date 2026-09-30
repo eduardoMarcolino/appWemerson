@@ -2,27 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\PassageiroModel;
+use App\Http\Controllers\Controller;
+use App\Models\admModel;
 use App\Models\UserModel;
 use App\Models\EnderecoModel;
 use App\Models\TelModel;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
-
-class PassageiroController extends Controller
+class admController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $passageiro = new PassageiroModel();
-
-        $passageiros = $passageiro->all();
-
-        return response()->json($passageiros);
+        //
     }
 
     /**
@@ -41,16 +37,14 @@ class PassageiroController extends Controller
         
     }
 
-    // função para cadastrar passageiro, usuário e endereço ao mesmo tempo
     public function cadastro(Request $request)
     {
-        $passageiro = new PassageiroModel();
+        $adm = new admModel();
         $user = new UserModel();
         $endereco = new EnderecoModel();
         $telefone = new TelModel();
 
         try{
-
             $user ->nome = $request->input('nome');
             $user ->email = $request->input('email');
             $user ->senha = Hash::make($request->input('senha'));
@@ -61,11 +55,11 @@ class PassageiroController extends Controller
 
             $user->save();
 
-            $passageiro->userId = $user->id;
-            $passageiro->status = "Ativo";
+            $adm->userId = $user->id;
+            $adm->nivelAcesso = "Operador";
 
-            $passageiro->save();
-            
+            $adm->save();
+
             $telefone->userId = $user->id;
             $telefone->numeroTelefone = $request->input('numeroTelefone');
 
@@ -84,7 +78,7 @@ class PassageiroController extends Controller
 
             return response()->json([
                 'message' => 'Passageiro cadastrado com sucesso!',
-                'passageiro' => $passageiro,
+                'passageiro' => $adm,
                 'endereco' => $endereco,
                 'telefone' => $telefone
             ], 201);
@@ -94,45 +88,6 @@ class PassageiroController extends Controller
                 'message' => 'Erro ao cadastrar passageiro: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    public function login(Request $request){
-        $email = $request->input('email');
-        $senha = $request->input('senha');
-
-        // 1. Busca o usuário pelo e-mail
-        $user = UserModel::where('email', $email)->first();
-
-        // Se o usuário não existe ou a senha está incorreta
-        if (!$user || !Hash::check($senha, $user->senha)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciais inválidas'
-            ], 401);
-        }
-
-        // 2. Descobre qual é o ID do usuário (ajustando caso a coluna na tbUser se chame 'userId' ou 'id')
-        $userId = $user->userId ?? $user->id;
-
-        // 3. Busca o passageiro explicitando a coluna 'userId'
-        $passageiro = PassageiroModel::where('userId', $userId)->first();
-
-        // Se o passageiro não for encontrado
-        if (!$passageiro) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Passageiro não encontrado para este usuário',
-                'user_id_testado' => $userId
-            ], 404);
-        }
-
-        // Sucesso no login
-        return response()->json([
-            'success' => true,
-            'message' => 'Login realizado com sucesso',
-            'passageiro' => $passageiro,
-            'user' => $user
-        ], 200);
     }
 
     /**

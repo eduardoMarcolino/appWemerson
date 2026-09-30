@@ -10,4 +10,16 @@ class VeiculoModel extends Model
     use HasFactory;
 
     protected $table = 'tbveiculo';
+
+    public $timestamps = false;
+    protected $fillable = [
+        'motoristaId',
+        'marca',
+        'modelo',
+        'placa',
+        'cor',
+        'anoFabricacao',
+        'anoModelo',
+        'categoria'
+    ];
 }
