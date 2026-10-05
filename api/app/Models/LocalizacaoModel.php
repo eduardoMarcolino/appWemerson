@@ -9,5 +9,17 @@ class LocalizacaoModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tblocalizacao';
+    protected $table = 'tbLocalizacao';
+
+    protected $primaryKey = 'localizacaoId';
+
+    public $timestamps = false;
+
+    protected $fillable = [
+        'corridaId',
+        'motoristaId',
+        'latitude',
+        'longitude',
+        'dataHora',
+    ];
 }

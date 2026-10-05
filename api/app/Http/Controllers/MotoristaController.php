@@ -2,182 +2,130 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\MotoristaModel;
-use App\Models\UserModel;
 use App\Models\EnderecoModel;
+use App\Models\MotoristaModel;
 use App\Models\TelModel;
+use App\Models\UserModel;
 use App\Models\VeiculoModel;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class MotoristaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): JsonResponse
     {
-        $motorista = new MotoristaModel();
-
-        $motoristas = $motorista->all();
-
-        return response()->json($motoristas);
+        return response()->json(MotoristaModel::with(['user', 'veiculos'])->get());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function cadastro(Request $request): JsonResponse
     {
-        //
+        $data = $request->validate([
+            'nome' => ['required', 'string', 'min:3', 'max:100'],
+            'email' => ['required', 'email', 'max:150', 'unique:tbUser,email'],
+            'senha' => ['required', 'string', 'min:6', 'max:255'],
+            'cpf' => ['required', 'digits:11', 'unique:tbUser,cpf'],
+            'fotoPerfil' => ['nullable', 'string', 'max:255'],
+            'numeroTelefone' => ['required', 'string', 'max:20'],
+            'logradouro' => ['required', 'string', 'max:150'],
+            'numero' => ['nullable', 'string', 'max:10'],
+            'bairro' => ['nullable', 'string', 'max:100'],
+            'cidade' => ['nullable', 'string', 'max:100'],
+            'estado' => ['nullable', 'string', 'size:2'],
+            'cep' => ['nullable', 'string', 'max:9'],
+            'complemento' => ['nullable', 'string', 'max:100'],
+            'cnh' => ['required', 'string', 'max:20'],
+            'validadeCNH' => ['required', 'date', 'after:today'],
+            'marca' => ['required', 'string', 'max:50'],
+            'modelo' => ['required', 'string', 'max:50'],
+            'placa' => ['required', 'string', 'max:10', 'unique:tbVeiculo,placa'],
+            'cor' => ['nullable', 'string', 'max:30'],
+            'anoFabricacao' => ['nullable', 'integer', 'between:1900,2100'],
+            'anoModelo' => ['nullable', 'integer', 'between:1900,2100'],
+            'categoria' => ['required', 'in:Economico,Comfort,SUV,Moto'],
+        ]);
+
+        [$user, $motorista] = DB::transaction(function () use ($data): array {
+            $user = UserModel::create([
+                'nome' => $data['nome'],
+                'email' => mb_strtolower($data['email']),
+                'senha' => Hash::make($data['senha']),
+                'cpf' => $data['cpf'],
+                'fotoPerfil' => $data['fotoPerfil'] ?? null,
+                'dataCadastro' => now(),
+                'statusConta' => 'Ativa',
+            ]);
+
+            $motorista = MotoristaModel::create([
+                'userId' => $user->userId,
+                'cnh' => $data['cnh'],
+                'validadeCNH' => $data['validadeCNH'],
+                'avaliacaoMedia' => 0,
+                'statusMotorista' => app()->environment('local', 'testing') ? 'Aprovado' : 'Pendente',
+            ]);
+
+            VeiculoModel::create([
+                'motoristaId' => $motorista->motoristaId,
+                'marca' => $data['marca'],
+                'modelo' => $data['modelo'],
+                'placa' => strtoupper($data['placa']),
+                'cor' => $data['cor'] ?? null,
+                'anoFabricacao' => $data['anoFabricacao'] ?? null,
+                'anoModelo' => $data['anoModelo'] ?? null,
+                'categoria' => $data['categoria'],
+            ]);
+
+            TelModel::create([
+                'userId' => $user->userId,
+                'numeroTelefone' => $data['numeroTelefone'],
+            ]);
+
+            EnderecoModel::create([
+                'userId' => $user->userId,
+                'logradouro' => $data['logradouro'],
+                'numero' => $data['numero'] ?? null,
+                'bairro' => $data['bairro'] ?? null,
+                'cidade' => $data['cidade'] ?? null,
+                'estado' => $data['estado'] ?? null,
+                'cep' => $data['cep'] ?? null,
+                'complemento' => $data['complemento'] ?? null,
+            ]);
+
+            return [$user, $motorista];
+        });
+
+        return response()->json([
+            'message' => 'Motorista cadastrado com sucesso.',
+            'user' => $user,
+            'motorista' => $motorista,
+            'token' => $user->createToken('app-motorista')->plainTextToken,
+        ], 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function login(Request $request): JsonResponse
     {
-        
-    }
+        $data = $request->validate([
+            'email' => ['required', 'string'],
+            'senha' => ['required', 'string'],
+        ]);
 
-    public function cadastro (Request $request)
-    {
-        $motorista = new MotoristaModel();
-        $user = new UserModel();
-        $endereco = new EnderecoModel();
-        $telefone = new TelModel();
-        $veiculo = new VeiculoModel();
-
-        try{
-
-            $user ->nome = $request->input('nome');
-            $user ->email = $request->input('email');
-            $user ->senha = Hash::make($request->input('senha'));
-            $user ->cpf = $request->input('cpf');
-            $user ->fotoPerfil = $request->input('fotoPerfil');
-            $user ->dataCadastro = now();
-            $user ->statusConta = "Ativa";
-
-            $user->save();
-  
-            $motorista->userId = $user->id;
-            $motorista->cnh = $request->cnh;
-            $motorista->validadeCNH = $request->validadeCNH;
-            $motorista->avaliacaoMedia = 0;
-            $motorista->statusMotorista = "Pendente";
-
-            $motorista->save();
-
-            $veiculo->motoristaId = $motorista->id;
-            $veiculo->marca = $request->input('marca');
-            $veiculo->modelo = $request->input('modelo');
-            $veiculo->placa = $request->input('placa');
-            $veiculo->cor = $request->input('cor');
-            $veiculo->anoFabricacao = $request->input('anoFabricacao');
-            $veiculo->anoModelo = $request->input('anoModelo');
-            $veiculo->categoria = $request->input('categoria');
-
-            $veiculo->save();
-
-            $telefone->userId = $user->id;
-            $telefone->numeroTelefone = $request->input('numeroTelefone');
-
-            $telefone->save();
-
-            $endereco->userId = $user->id;
-            $endereco->logradouro = $request->input('logradouro');
-            $endereco->numero = $request->input('numero');
-            $endereco->bairro = $request->input('bairro');
-            $endereco->cidade = $request->input('cidade');  
-            $endereco->estado = $request->input('estado');
-            $endereco->cep = $request->input('cep');
-            $endereco->complemento = $request->input('complemento');
-
-            $endereco->save();
-
-            return response()->json([
-                'message' => 'Motorista cadastrado com sucesso!',
-                'motorista' => $motorista,
-                'endereco' => $endereco,
-                'telefone' => $telefone,
-                'veiculo' => $veiculo
-            ], 201);
-        }catch(\Exception $e){
-            return response()->json([
-                'message' => 'Erro ao cadastrar motorista: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function login(Request $request){
-        $email = $request->input('email');
-        $senha = $request->input('senha');
-
-        // 1. Busca o usuário pelo e-mail
-        $user = UserModel::where('email', $email)->first();
-
-        // Se o usuário não existe ou a senha está incorreta
-        if (!$user || !Hash::check($senha, $user->senha)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciais inválidas'
-            ], 401);
+        $user = UserModel::where('email', trim($data['email']))->first();
+        if (! $user || $user->statusConta !== 'Ativa' || ! Hash::check($data['senha'], $user->senha)) {
+            throw ValidationException::withMessages(['email' => 'E-mail ou senha inválidos.']);
         }
 
-        // 2. Descobre qual é o ID do usuário (ajustando caso a coluna na tbUser se chame 'userId' ou 'id')
-        $userId = $user->userId ?? $user->id;
-
-        // 3. Busca o motorista explicitando a coluna 'userId'
-        $motorista = MotoristaModel::where('userId', $userId)->first();
-
-        // Se o motorista não for encontrado
-        if (!$motorista) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Passageiro não encontrado para este usuário',
-                'user_id_testado' => $userId
-            ], 404);
+        $motorista = MotoristaModel::where('userId', $user->userId)->first();
+        if (! $motorista || $motorista->statusMotorista === 'Bloqueado') {
+            throw ValidationException::withMessages(['email' => 'Conta de motorista indisponível.']);
         }
 
-        // Sucesso no login
         return response()->json([
             'success' => true,
-            'message' => 'Login realizado com sucesso',
+            'user' => $user,
             'motorista' => $motorista,
-            'user' => $user
-        ], 200);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+            'token' => $user->createToken('app-motorista')->plainTextToken,
+        ]);
     }
 }

@@ -9,11 +9,12 @@ class TelModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tbtelefone';
+    protected $table = 'tbTelefone';
 
     public $timestamps = false;
+
     protected $fillable = [
         'userId',
-        'numeroTelefone'
+        'numeroTelefone',
     ];
 }

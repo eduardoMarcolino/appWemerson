@@ -9,5 +9,17 @@ class PagamentoModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tbpagamento';
+    protected $table = 'tbPagamento';
+
+    protected $primaryKey = 'pagamentoId';
+
+    public $timestamps = false;
+
+    protected $fillable = [
+        'corridaId',
+        'valorPago',
+        'formaPagamento',
+        'dataPagamento',
+        'statusPagamento',
+    ];
 }

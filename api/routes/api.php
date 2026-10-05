@@ -1,28 +1,37 @@
 <?php
 
+use App\Http\Controllers\CorridaController;
+use App\Http\Controllers\MotoristaController;
+use App\Http\Controllers\PassageiroController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::post('/passageiro/insert', [PassageiroController::class, 'cadastro']);
+Route::post('/loginPassageiro', [PassageiroController::class, 'login']);
+Route::post('/motorista/insert', [MotoristaController::class, 'cadastro']);
+Route::post('/loginMotorista', [MotoristaController::class, 'login']);
 
-Route::post('/user/insert', [App\Http\Controllers\UserController::class, 'store']);
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/user', fn (Request $request) => $request->user());
+    Route::post('/logout', function (Request $request) {
+        $request->user()->currentAccessToken()->delete();
 
-//cadastro de passageiro + user
-Route::post('/passageiro/insert', [App\Http\Controllers\PassageiroController::class, 'cadastro']);
-//select dos passageiros
-Route::get('/passageiros', [App\Http\Controllers\PassageiroController::class, 'index']);
-//login de passageiro
-Route::post('/loginPassageiro', [App\Http\Controllers\PassageiroController::class, 'login']);
+        return response()->json(['message' => 'Sessão encerrada.']);
+    });
 
-//cadastro de motorista + user
-Route::post('/motorista/insert', [App\Http\Controllers\MotoristaController::class, 'cadastro']);
-//select dos motoristas
-Route::get('/motoristas', [App\Http\Controllers\MotoristaController::class, 'index']);
-//login de motorista
-Route::post('/loginMotorista', [App\Http\Controllers\MotoristaController::class, 'login']);
+    Route::get('/passageiro/corridas', [CorridaController::class, 'passageiroIndex']);
+    Route::get('/motorista/corridas', [CorridaController::class, 'motoristaIndex']);
+    Route::get('/motorista/corridas/ofertas', [CorridaController::class, 'ofertas']);
+    Route::get('/motorista/corridas/agendadas', [CorridaController::class, 'agendadas']);
 
-//cadastro de adm + user
-Route::post('/adm/insert', [App\Http\Controllers\admController::class, 'cadastro']);
-Route::get('/adms', [App\Http\Controllers\admController::class, 'index']);
+    Route::post('/corridas', [CorridaController::class, 'store']);
+    Route::get('/corridas/{corrida}', [CorridaController::class, 'show']);
+    Route::post('/corridas/{corrida}/aceitar', [CorridaController::class, 'aceitar']);
+    Route::post('/corridas/{corrida}/cheguei', [CorridaController::class, 'chegou']);
+    Route::post('/corridas/{corrida}/iniciar', [CorridaController::class, 'iniciar']);
+    Route::post('/corridas/{corrida}/finalizar', [CorridaController::class, 'finalizar']);
+    Route::post('/corridas/{corrida}/cancelar', [CorridaController::class, 'cancelar']);
+    Route::post('/corridas/{corrida}/pagamento', [CorridaController::class, 'pagar']);
+    Route::post('/corridas/{corrida}/avaliacoes', [CorridaController::class, 'avaliar']);
+    Route::post('/corridas/{corrida}/localizacao', [CorridaController::class, 'localizar']);
+});

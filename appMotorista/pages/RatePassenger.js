@@ -1,5 +1,0 @@
-import React from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { Avatar, Button, Page, ride, s } from './ui';
-export default function RatePassenger({ go }) { return <Page title="Avaliar passageiro" go={go} back="FinishRide"><View style={x.person}><Avatar initials="AS"/><Text style={x.name}>{ride.passenger}</Text><Text style={x.rating}>★ 4,9</Text></View><Text style={x.question}>Como foi sua experiencia com Ana?</Text><Text style={x.stars}>★ ★ ★ ★ ★</Text><Text style={s.muted}>Deixe um comentario opcional</Text><TextInput multiline placeholder="Escreva seu comentario..." style={x.input}/><Button onPress={() => go('RideComplete')}>Enviar avaliacao</Button><Button light onPress={() => go('RideComplete')}>Pular</Button></Page>; }
-const x=StyleSheet.create({person:{alignItems:'center',gap:7,marginTop:18},name:{fontWeight:'900',fontSize:17},rating:{color:'#087a50'},question:{fontWeight:'900',fontSize:16,textAlign:'center',marginTop:15},stars:{color:'#f2a800',fontSize:30,textAlign:'center'},input:{minHeight:120,borderWidth:1,borderColor:'#e2e8e4',borderRadius:10,padding:12,textAlignVertical:'top'}});

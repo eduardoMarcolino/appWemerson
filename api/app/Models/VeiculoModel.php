@@ -9,9 +9,12 @@ class VeiculoModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tbveiculo';
+    protected $table = 'tbVeiculo';
+
+    protected $primaryKey = 'veiculoId';
 
     public $timestamps = false;
+
     protected $fillable = [
         'motoristaId',
         'marca',
@@ -20,6 +23,6 @@ class VeiculoModel extends Model
         'cor',
         'anoFabricacao',
         'anoModelo',
-        'categoria'
+        'categoria',
     ];
 }

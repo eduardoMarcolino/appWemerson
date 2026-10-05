@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export const green = '#087a50';
 export const red = '#d94b45';
@@ -10,11 +10,14 @@ export const ride = {
   duration: '12 min', passenger: 'Ana Silva', driver: 'Carlos Lima',
 };
 
-export function Button({ children, onPress, light = false, danger = false }) {
-  return <Pressable onPress={onPress} style={[s.button, light && s.lightButton, danger && s.dangerButton]}><Text style={[s.buttonText, light && s.lightText, danger && s.dangerText]}>{children}</Text></Pressable>;
+export function Button({ children, onPress, light = false, danger = false, disabled = false }) {
+  return <Pressable disabled={disabled} onPress={onPress} style={[s.button, light && s.lightButton, danger && s.dangerButton, disabled && { opacity: 0.5 }]}><Text style={[s.buttonText, light && s.lightText, danger && s.dangerText]}>{children}</Text></Pressable>;
 }
 
 export function Card({ children, style }) { return <View style={[s.card, style]}>{children}</View>; }
+export function Field({ value, onChangeText, placeholder, secureTextEntry = false, keyboardType = 'default', multiline = false }) {
+  return <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} secureTextEntry={secureTextEntry} keyboardType={keyboardType} multiline={multiline} style={[s.field, multiline && { minHeight: 100, textAlignVertical: 'top' }]} />;
+}
 
 export function Page({ children, title, go, back = 'Home', nav, scroll = true }) {
   const content = <View style={s.content}>
@@ -38,7 +41,7 @@ export function Divider() { return <View style={s.divider} />; }
 export const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#f7f8f7' }, scroll: { flexGrow: 1 }, content: { padding: 18, gap: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }, back: { fontSize: 34, lineHeight: 30, color: '#173629' }, title: { color: '#14231d', fontSize: 18, fontWeight: '800' }, menu: { color: green, fontSize: 24 },
-  button: { backgroundColor: green, borderRadius: 10, alignItems: 'center', paddingVertical: 15 }, buttonText: { color: '#fff', fontWeight: '800' }, lightButton: { backgroundColor: '#e5f3ed' }, lightText: { color: green }, dangerButton: { backgroundColor: '#fff0ef' }, dangerText: { color: red },
+  button: { backgroundColor: green, borderRadius: 10, alignItems: 'center', paddingVertical: 15 }, buttonText: { color: '#fff', fontWeight: '800' }, lightButton: { backgroundColor: '#e5f3ed' }, lightText: { color: green }, dangerButton: { backgroundColor: '#fff0ef' }, dangerText: { color: red }, field: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8e4', borderRadius: 10, padding: 14, fontSize: 14 },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 15, gap: 9, elevation: 2, shadowColor: '#173629', shadowOpacity: 0.06, shadowRadius: 8 }, muted: { color: '#6f7c76', fontSize: 12 },
   location: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' }, dot: { width: 12, height: 12, borderRadius: 6, marginTop: 4 }, locationTitle: { color: '#14231d', fontSize: 14, fontWeight: '800' }, divider: { height: 1, backgroundColor: '#e5ebe8', marginVertical: 3 },
   metric: { flexDirection: 'row', justifyContent: 'space-between' }, metricValue: { color: '#14231d', fontWeight: '800' }, strong: { color: green, fontSize: 18 }, avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#d9efe4', alignItems: 'center', justifyContent: 'center' }, avatarText: { color: green, fontWeight: '900' },

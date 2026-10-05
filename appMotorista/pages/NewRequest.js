@@ -1,4 +1,0 @@
-import React from 'react';
-import { Text, View } from 'react-native';
-import { Button, Card, Location, Page, red, ride, s } from './ui';
-export default function NewRequest({ go }) { return <Page title="Nova solicitacao" go={go}><Card><Text style={{fontWeight:'800',color:'#087a50'}}>Solicitacao recebida</Text><Text style={s.muted}>2,3 km de distancia</Text><View style={{height:8}}/><Location title={ride.origin} detail={ride.originArea}/><Location color={red} title={ride.destination} detail={ride.destinationArea}/></Card><Card><Text style={s.muted}>Valor estimado</Text><Text style={{fontSize:26,fontWeight:'900'}}>R$ 14,50</Text><Text style={s.muted}>Pagamento por cartao</Text></Card><Text style={{textAlign:'center',fontWeight:'900',fontSize:28}}>00:15</Text><Button onPress={() => go('RideDetails')}>Aceitar</Button><Button light onPress={() => go('Home')}>Recusar</Button></Page>; }

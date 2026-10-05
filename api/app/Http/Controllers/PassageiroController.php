@@ -2,168 +2,113 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\PassageiroModel;
-use App\Models\UserModel;
 use App\Models\EnderecoModel;
+use App\Models\PassageiroModel;
 use App\Models\TelModel;
+use App\Models\UserModel;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Validation\ValidationException;
 
 class PassageiroController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): JsonResponse
     {
-        $passageiro = new PassageiroModel();
-
-        $passageiros = $passageiro->all();
-
-        return response()->json($passageiros);
+        return response()->json(PassageiroModel::with('user')->get());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function cadastro(Request $request): JsonResponse
     {
-        //
+        $data = $request->validate([
+            'nome' => ['required', 'string', 'min:3', 'max:100'],
+            'email' => ['required', 'email', 'max:150', 'unique:tbUser,email'],
+            'senha' => ['required', 'string', 'min:6', 'max:255'],
+            'cpf' => ['required', 'digits:11', 'unique:tbUser,cpf'],
+            'fotoPerfil' => ['nullable', 'string', 'max:255'],
+            'numeroTelefone' => ['required', 'string', 'max:20'],
+            'logradouro' => ['required', 'string', 'max:150'],
+            'numero' => ['nullable', 'string', 'max:10'],
+            'bairro' => ['nullable', 'string', 'max:100'],
+            'cidade' => ['nullable', 'string', 'max:100'],
+            'estado' => ['nullable', 'string', 'size:2'],
+            'cep' => ['nullable', 'string', 'max:9'],
+            'complemento' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        [$user, $passageiro] = DB::transaction(function () use ($data): array {
+            $user = UserModel::create([
+                'nome' => $data['nome'],
+                'email' => mb_strtolower($data['email']),
+                'senha' => Hash::make($data['senha']),
+                'cpf' => $data['cpf'],
+                'fotoPerfil' => $data['fotoPerfil'] ?? null,
+                'dataCadastro' => now(),
+                'statusConta' => 'Ativa',
+            ]);
+
+            $passageiro = PassageiroModel::create([
+                'userId' => $user->userId,
+                'status' => 'Ativo',
+            ]);
+
+            TelModel::create([
+                'userId' => $user->userId,
+                'numeroTelefone' => $data['numeroTelefone'],
+            ]);
+
+            EnderecoModel::create([
+                'userId' => $user->userId,
+                'logradouro' => $data['logradouro'],
+                'numero' => $data['numero'] ?? null,
+                'bairro' => $data['bairro'] ?? null,
+                'cidade' => $data['cidade'] ?? null,
+                'estado' => $data['estado'] ?? null,
+                'cep' => $data['cep'] ?? null,
+                'complemento' => $data['complemento'] ?? null,
+            ]);
+
+            return [$user, $passageiro];
+        });
+
+        return response()->json([
+            'message' => 'Passageiro cadastrado com sucesso.',
+            'user' => $user,
+            'passageiro' => $passageiro,
+            'token' => $user->createToken('app-passageiro')->plainTextToken,
+        ], 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function login(Request $request): JsonResponse
     {
-        
-    }
+        $data = $request->validate([
+            'email' => ['required', 'string'],
+            'senha' => ['required', 'string'],
+        ]);
 
-    // função para cadastrar passageiro, usuário e endereço ao mesmo tempo
-    public function cadastro(Request $request)
-    {
-        $passageiro = new PassageiroModel();
-        $user = new UserModel();
-        $endereco = new EnderecoModel();
-        $telefone = new TelModel();
+        $login = trim($data['email']);
+        $user = UserModel::query()
+            ->where('email', $login)
+            ->when(preg_match('/^\d{11}$/', preg_replace('/\D/', '', $login)), function ($query) use ($login): void {
+                $query->orWhere('cpf', preg_replace('/\D/', '', $login));
+            })
+            ->first();
 
-        try{
-
-            $user ->nome = $request->input('nome');
-            $user ->email = $request->input('email');
-            $user ->senha = Hash::make($request->input('senha'));
-            $user ->cpf = $request->input('cpf');
-            $user ->fotoPerfil = $request->input('fotoPerfil');
-            $user ->dataCadastro = now();
-            $user ->statusConta = "Ativa";
-
-            $user->save();
-
-            $passageiro->userId = $user->id;
-            $passageiro->status = "Ativo";
-
-            $passageiro->save();
-            
-            $telefone->userId = $user->id;
-            $telefone->numeroTelefone = $request->input('numeroTelefone');
-
-            $telefone->save();
-
-            $endereco->userId = $user->id;
-            $endereco->logradouro = $request->input('logradouro');
-            $endereco->numero = $request->input('numero');
-            $endereco->bairro = $request->input('bairro');
-            $endereco->cidade = $request->input('cidade');  
-            $endereco->estado = $request->input('estado');
-            $endereco->cep = $request->input('cep');
-            $endereco->complemento = $request->input('complemento');
-
-            $endereco->save();
-
-            return response()->json([
-                'message' => 'Passageiro cadastrado com sucesso!',
-                'passageiro' => $passageiro,
-                'endereco' => $endereco,
-                'telefone' => $telefone
-            ], 201);
-
-        }catch(\Exception $e){
-            return response()->json([
-                'message' => 'Erro ao cadastrar passageiro: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function login(Request $request){
-        $email = $request->input('email');
-        $senha = $request->input('senha');
-
-        // 1. Busca o usuário pelo e-mail
-        $user = UserModel::where('email', $email)->first();
-
-        // Se o usuário não existe ou a senha está incorreta
-        if (!$user || !Hash::check($senha, $user->senha)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciais inválidas'
-            ], 401);
+        if (! $user || $user->statusConta !== 'Ativa' || ! Hash::check($data['senha'], $user->senha)) {
+            throw ValidationException::withMessages(['email' => 'E-mail/CPF ou senha inválidos.']);
         }
 
-        // 2. Descobre qual é o ID do usuário (ajustando caso a coluna na tbUser se chame 'userId' ou 'id')
-        $userId = $user->userId ?? $user->id;
-
-        // 3. Busca o passageiro explicitando a coluna 'userId'
-        $passageiro = PassageiroModel::where('userId', $userId)->first();
-
-        // Se o passageiro não for encontrado
-        if (!$passageiro) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Passageiro não encontrado para este usuário',
-                'user_id_testado' => $userId
-            ], 404);
+        $passageiro = PassageiroModel::where('userId', $user->userId)->first();
+        if (! $passageiro || $passageiro->status !== 'Ativo') {
+            throw ValidationException::withMessages(['email' => 'Conta de passageiro indisponível.']);
         }
 
-        // Sucesso no login
         return response()->json([
             'success' => true,
-            'message' => 'Login realizado com sucesso',
+            'user' => $user,
             'passageiro' => $passageiro,
-            'user' => $user
-        ], 200);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+            'token' => $user->createToken('app-passageiro')->plainTextToken,
+        ]);
     }
 }

@@ -25,7 +25,9 @@ return new class extends Migration
             $table->foreign('motoristaId', 'fk_avaliacao_motorista')->references('motoristaId')->on('tbMotorista')->cascadeOnUpdate();
         });
 
-        DB::statement('ALTER TABLE tbAvaliacao ADD CONSTRAINT chk_avaliacao_nota CHECK (nota BETWEEN 1 AND 5)');
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE tbAvaliacao ADD CONSTRAINT chk_avaliacao_nota CHECK (nota BETWEEN 1 AND 5)');
+        }
     }
 
     /**

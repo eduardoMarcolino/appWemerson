@@ -1,5 +1,0 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Divider, Metric, Page, ride, s } from './ui';
-export default function RideComplete({ go }) { return <Page go={go} back="Home"><View style={x.check}><Text style={x.mark}>✓</Text></View><Text style={x.title}>Corrida concluida!</Text><Text style={[s.muted,{textAlign:'center'}]}>Obrigado por dirigir com a gente.</Text><Card><Text style={{fontWeight:'800'}}>Resumo da corrida</Text><Metric label="Distancia" value={ride.distance}/><Metric label="Tempo" value={ride.duration}/><Metric label="Valor da corrida" value={ride.price}/><Divider/><Metric label="Voce recebeu" value={ride.price} strong/></Card><Button onPress={() => go('Earnings')}>Ver ganhos</Button></Page>; }
-const x=StyleSheet.create({check:{width:92,height:92,borderRadius:46,backgroundColor:'#38c779',alignItems:'center',justifyContent:'center',alignSelf:'center',marginTop:28},mark:{color:'#fff',fontSize:52,fontWeight:'900'},title:{fontSize:22,fontWeight:'900',textAlign:'center',marginTop:10}});

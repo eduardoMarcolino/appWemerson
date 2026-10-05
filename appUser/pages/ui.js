@@ -11,20 +11,25 @@ import {
 
 export const green = '#087a50';
 
-export function Button({ children, onPress, light = false }) {
+export function Button({ children, onPress, light = false, disabled = false }) {
   return (
-    <Pressable onPress={onPress} style={[s.button, light && s.light]}>
+    <Pressable
+      onPress={disabled ? undefined : onPress}
+      style={[s.button, light && s.light, disabled && { opacity: 0.5 }]}
+    >
       <Text style={[s.buttonText, light && s.lightText]}>{children}</Text>
     </Pressable>
   );
 }
 
-export function Field({ placeholder, value, secureTextEntry = false }) {
+export function Field({ placeholder, value, secureTextEntry = false, onChangeText, keyboardType }) {
   return (
     <TextInput
       placeholder={placeholder}
       value={value}
       secureTextEntry={secureTextEntry}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
       placeholderTextColor="#78847f"
       style={s.field}
     />

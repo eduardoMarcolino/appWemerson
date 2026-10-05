@@ -1,0 +1,238 @@
+{
+  "info": {
+    "_postman_id": "b4f2dd1a-a7c2-46c0-b909-63e6138fdf29",
+    "name": "InteriorGo - fluxo de testes",
+    "description": "Coleção local para cadastrar perfis e testar uma corrida completa. O pagamento é somente simulado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000/api" },
+    { "key": "passengerToken", "value": "" },
+    { "key": "driverToken", "value": "" },
+    { "key": "rideId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Perfis",
+      "item": [
+        {
+          "name": "Cadastrar passageiro (uma vez)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Ana Teste\",\n  \"email\": \"ana.teste@example.test\",\n  \"senha\": \"senha-segura\",\n  \"cpf\": \"12345678901\",\n  \"numeroTelefone\": \"11999998888\",\n  \"logradouro\": \"Rua de Teste\",\n  \"numero\": \"10\",\n  \"bairro\": \"Centro\",\n  \"cidade\": \"São Paulo\",\n  \"estado\": \"SP\",\n  \"cep\": \"01000000\"\n}"
+            },
+            "url": "{{baseUrl}}/passageiro/insert"
+          }
+        },
+        {
+          "name": "Login passageiro",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Login do passageiro realizado', () => pm.response.to.have.status(200));",
+                "pm.collectionVariables.set('passengerToken', pm.response.json().token);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana.teste@example.test\",\n  \"senha\": \"senha-segura\"\n}"
+            },
+            "url": "{{baseUrl}}/loginPassageiro"
+          }
+        },
+        {
+          "name": "Cadastrar motorista (uma vez; APP_ENV=local)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Carlos Teste\",\n  \"email\": \"carlos.teste@example.test\",\n  \"senha\": \"senha-segura\",\n  \"cpf\": \"98765432100\",\n  \"numeroTelefone\": \"11988887777\",\n  \"logradouro\": \"Rua do Motorista\",\n  \"cidade\": \"São Paulo\",\n  \"estado\": \"SP\",\n  \"cnh\": \"CNH123456\",\n  \"validadeCNH\": \"2030-01-01\",\n  \"marca\": \"Chevrolet\",\n  \"modelo\": \"Onix\",\n  \"placa\": \"ABC1D23\",\n  \"cor\": \"Prata\",\n  \"anoFabricacao\": 2023,\n  \"anoModelo\": 2024,\n  \"categoria\": \"Economico\"\n}"
+            },
+            "url": "{{baseUrl}}/motorista/insert"
+          }
+        },
+        {
+          "name": "Login motorista",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Login do motorista realizado', () => pm.response.to.have.status(200));",
+                "pm.collectionVariables.set('driverToken', pm.response.json().token);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"carlos.teste@example.test\",\n  \"senha\": \"senha-segura\"\n}"
+            },
+            "url": "{{baseUrl}}/loginMotorista"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Corrida",
+      "item": [
+        {
+          "name": "Solicitar corrida",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Corrida criada', () => pm.response.to.have.status(201));",
+                "pm.collectionVariables.set('rideId', pm.response.json().corrida.corrida.corridaId);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Praça da Matriz\",\n  \"latitudeOrigem\": -23.5505,\n  \"longitudeOrigem\": -46.6333,\n  \"destino\": \"Shopping Jardins\",\n  \"latitudeDestino\": -23.5614,\n  \"longitudeDestino\": -46.6559,\n  \"categoria\": \"Economico\"\n}"
+            },
+            "url": "{{baseUrl}}/corridas"
+          }
+        },
+        {
+          "name": "Ver ofertas (motorista)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverToken}}" }],
+            "url": "{{baseUrl}}/motorista/corridas/ofertas"
+          }
+        },
+        {
+          "name": "Aceitar corrida",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverToken}}" }],
+            "url": "{{baseUrl}}/corridas/{{rideId}}/aceitar"
+          }
+        },
+        {
+          "name": "Marcar chegada",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverToken}}" }],
+            "url": "{{baseUrl}}/corridas/{{rideId}}/cheguei"
+          }
+        },
+        {
+          "name": "Iniciar corrida",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverToken}}" }],
+            "url": "{{baseUrl}}/corridas/{{rideId}}/iniciar"
+          }
+        },
+        {
+          "name": "Atualizar localização",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": -23.555,\n  \"longitude\": -46.644\n}"
+            },
+            "url": "{{baseUrl}}/corridas/{{rideId}}/localizacao"
+          }
+        },
+        {
+          "name": "Finalizar corrida",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverToken}}" }],
+            "url": "{{baseUrl}}/corridas/{{rideId}}/finalizar"
+          }
+        },
+        {
+          "name": "Confirmar pagamento de teste (passageiro)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Pagamento explicitamente simulado', () => {",
+                "  pm.response.to.have.status(200);",
+                "  pm.expect(pm.response.json().testOnly).to.eql(true);",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"formaPagamento\": \"Pix\"\n}" },
+            "url": "{{baseUrl}}/corridas/{{rideId}}/pagamento"
+          }
+        },
+        {
+          "name": "Avaliar motorista (passageiro)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"nota\": 5,\n  \"comentario\": \"Ótima corrida.\"\n}" },
+            "url": "{{baseUrl}}/corridas/{{rideId}}/avaliacoes"
+          }
+        },
+        {
+          "name": "Avaliar passageiro (motorista)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"nota\": 5\n}" },
+            "url": "{{baseUrl}}/corridas/{{rideId}}/avaliacoes"
+          }
+        },
+        {
+          "name": "Histórico do passageiro",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{passengerToken}}" }],
+            "url": "{{baseUrl}}/passageiro/corridas"
+          }
+        },
+        {
+          "name": "Histórico do motorista",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverToken}}" }],
+            "url": "{{baseUrl}}/motorista/corridas"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,10 +9,11 @@ class EnderecoModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tbendereco';
+    protected $table = 'tbEndereco';
 
     public $timestamps = false;
-    protected $fillable =[
+
+    protected $fillable = [
         'userId',
         'logradouro',
         'numero',
@@ -21,6 +21,6 @@ class EnderecoModel extends Model
         'cidade',
         'estado',
         'cep',
-        'complemento'
+        'complemento',
     ];
 }
