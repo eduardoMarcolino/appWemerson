@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, useWindowDimensions, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Button, s } from '../ui';
 
-const fallback = { latitude: -23.5505, longitude: -46.6333 };
-
 export default function MapPicker({ value, onChange = () => {}, interactive = true }) {
+  const { width } = useWindowDimensions();
   const [error, setError] = useState('');
-  const coordinate = value || fallback;
+  const coordinate = value;
+  const mapHeight = Math.min(Math.max((Math.min(width, 760) - 32) * 0.55, 180), 320);
 
   async function useCurrentLocation() {
     setError('');
@@ -32,17 +32,13 @@ export default function MapPicker({ value, onChange = () => {}, interactive = tr
   return (
     <View style={{ gap: 8 }}>
       <MapView
-        style={{ height: 220, borderRadius: 14 }}
-        region={{
-          ...coordinate,
-          latitudeDelta: 0.025,
-          longitudeDelta: 0.025,
-        }}
+        style={{ height: mapHeight, borderRadius: 14 }}
+        region={coordinate ? { ...coordinate, latitudeDelta: 0.025, longitudeDelta: 0.025 } : undefined}
         onPress={interactive ? (event) => onChange(event.nativeEvent.coordinate) : undefined}
         scrollEnabled={interactive}
         zoomEnabled={interactive}
       >
-        <Marker coordinate={coordinate} title="Ponto selecionado" />
+        {coordinate ? <Marker coordinate={coordinate} title="Ponto selecionado" /> : null}
       </MapView>
       {interactive ? <Text style={s.muted}>Toque no mapa para selecionar o ponto.</Text> : null}
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}

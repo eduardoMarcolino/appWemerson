@@ -50,6 +50,11 @@ class UserModel extends Authenticatable
         return $this->hasOne(MotoristaModel::class, 'userId', 'userId');
     }
 
+    public function administrador(): HasOne
+    {
+        return $this->hasOne(admModel::class, 'userId', 'userId');
+    }
+
     public function telefones(): HasMany
     {
         return $this->hasMany(TelModel::class, 'userId', 'userId');

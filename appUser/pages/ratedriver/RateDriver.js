@@ -8,8 +8,10 @@ export default function RateDriver({ go, session }) {
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const rideId = session.activeRide?.corrida?.corridaId;
   const driverName = session.activeRide?.motorista?.user?.nome || 'Motorista';
+  const driverId = session.activeRide?.motorista?.motoristaId;
 
   async function submitRating() {
     setLoading(true);
@@ -21,6 +23,19 @@ export default function RateDriver({ go, session }) {
       setError(requestError.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function favoriteDriver() {
+    setFavoriteLoading(true);
+    setError('');
+    try {
+      await api.post(`/passageiro/motoristas-favoritos/${driverId}`, {});
+      go('Home');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setFavoriteLoading(false);
     }
   }
 
@@ -49,6 +64,11 @@ export default function RateDriver({ go, session }) {
       <Button onPress={submitRating} disabled={loading || !rideId}>
         {loading ? 'Enviando…' : 'Enviar avaliação'}
       </Button>
+      {driverId ? (
+        <Button light onPress={favoriteDriver} disabled={favoriteLoading}>
+          {favoriteLoading ? 'Salvando…' : 'Adicionar motorista aos favoritos'}
+        </Button>
+      ) : null}
       <Pressable onPress={() => go('Home')}><Text style={[s.muted, { textAlign: 'center' }]}>Pular</Text></Pressable>
     </Page>
   );

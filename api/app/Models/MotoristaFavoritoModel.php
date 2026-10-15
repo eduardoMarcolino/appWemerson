@@ -9,5 +9,11 @@ class MotoristaFavoritoModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tbmotoristafavorito';
+    protected $table = 'tbFavoritoMotorista';
+
+    protected $primaryKey = 'favoritoId';
+
+    public $timestamps = false;
+
+    protected $fillable = ['passageiroId', 'motoristaId'];
 }

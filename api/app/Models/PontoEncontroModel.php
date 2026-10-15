@@ -9,5 +9,9 @@ class PontoEncontroModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tbpontoencontro';
+    protected $table = 'tbPontoEncontro';
+
+    protected $primaryKey = 'pontoEncontroId';
+
+    public $timestamps = false;
 }

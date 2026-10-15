@@ -11,6 +11,8 @@ class TelModel extends Model
 
     protected $table = 'tbTelefone';
 
+    protected $primaryKey = 'telefoneId';
+
     public $timestamps = false;
 
     protected $fillable = [

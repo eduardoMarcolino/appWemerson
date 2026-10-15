@@ -1,29 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { Button, Card, Nav, Page, s } from '../ui';
+import { api } from '../api';
+import { Card, Nav, Page, s } from '../ui';
 
 export default function Wallet({ go }) {
+  const [payments, setPayments] = useState([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get('/app-data')
+      .then(({ data }) => setPayments(data.pagamentos))
+      .catch((requestError) => setError(requestError.message));
+  }, []);
+
   return (
     <View style={{ flex: 1 }}>
-      <Page title="Carteira" go={go}>
-        <Card style={{ backgroundColor: '#e6f5ee' }}>
-          <Text style={s.muted}>Saldo disponível</Text>
-          <Text style={{ fontSize: 28, fontWeight: '800' }}>R$ 48,70</Text>
-          <Button onPress={() => {}}>Adicionar saldo</Button>
-        </Card>
-
-        <Text style={s.h2}>Formas de pagamento</Text>
-        {['•••• 1234 · Padrão 🟠', '•••• 5678 · VISA', '•••• 9101 · Mastercard'].map((item) => (
-          <Card key={item}>
-            <Text>{item}</Text>
+      <Page title="Pagamentos" go={go}>
+        <Text style={s.h2}>Pagamentos registrados</Text>
+        {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
+        {payments.length === 0 && !error ? <Text style={s.muted}>Ainda não há pagamentos registrados na sua conta.</Text> : null}
+        {payments.map(({ pagamento, corrida }) => (
+          <Card key={pagamento.pagamentoId}>
+            <Text style={{ fontWeight: '700' }}>{corrida.origem} → {corrida.destino}</Text>
+            <Text style={s.muted}>{pagamento.dataPagamento ? new Date(pagamento.dataPagamento).toLocaleString('pt-BR') : 'Pagamento pendente'}</Text>
+            <Text style={s.muted}>{pagamento.formaPagamento} · {pagamento.statusPagamento}</Text>
+            <Text style={{ fontWeight: '800', textAlign: 'right' }}>
+              {Number(pagamento.valorPago).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </Text>
           </Card>
         ))}
-
-        <Text style={s.h2}>Extrato recente</Text>
-        <Card>
-          <Text>12/05 Corrida R$ 11,90</Text>
-          <Text>10/05 Corrida R$ 9,50</Text>
-        </Card>
       </Page>
       <Nav go={go} />
     </View>

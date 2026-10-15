@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import { api } from '../api';
 import { Button, Card, Page, s } from '../ui';
 
-const categories = [
-  ['🚗', 'Econômico', 'Economico', 1.0],
-  ['🚙', 'Conforto', 'Comfort', 1.4],
-  ['🚐', 'SUV', 'SUV', 1.7],
-  ['🛵', 'Moto', 'Moto', 0.8],
-];
-
 export default function Category({ go, session, setSession }) {
-  const [selected, setSelected] = useState(session.tripDraft.categoria || 'Economico');
+  const [categories, setCategories] = useState([]);
+  const [selected, setSelected] = useState(session.tripDraft.categoria || '');
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get('/catalogos')
+      .then(({ data }) => {
+        setCategories(data.categorias);
+        setSelected((current) => current || data.categorias[0]?.value || '');
+      })
+      .catch((requestError) => setError(requestError.message))
+      .finally(() => setCatalogLoading(false));
+  }, []);
 
   async function requestRide() {
     setLoading(true);
@@ -32,19 +37,23 @@ export default function Category({ go, session, setSession }) {
 
   return (
     <Page title="Escolha a categoria" go={go} back="Beneficiary">
-      {categories.map(([icon, title, category, multiplier]) => (
+      {catalogLoading ? <Text style={s.muted}>Carregando categorias…</Text> : null}
+      {categories.map(({ icon, label, value }) => (
         <Card
-          key={category}
-          style={selected === category ? { borderWidth: 2, borderColor: '#087a50' } : null}
+          key={value}
+          style={selected === value ? { borderWidth: 2, borderColor: '#087a50' } : null}
         >
-          <Text onPress={() => setSelected(category)} style={{ fontSize: 17, fontWeight: '700' }}>
-            {selected === category ? '● ' : '○ '}{icon} {title}
+          <Text onPress={() => setSelected(value)} style={{ fontSize: 17, fontWeight: '700' }}>
+            {selected === value ? '● ' : '○ '}{icon} {label}
           </Text>
-          <Text style={s.muted}>Valor calculado pela distância e categoria (multiplicador {multiplier}×)</Text>
+          <Text style={s.muted}>O valor da corrida será calculado pela API antes da confirmação.</Text>
         </Card>
       ))}
+      {!catalogLoading && categories.length === 0 && !error
+        ? <Text style={s.muted}>Nenhuma categoria está disponível.</Text>
+        : null}
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
-      <Button onPress={requestRide} disabled={loading}>
+      <Button onPress={requestRide} disabled={loading || catalogLoading || !selected}>
         {loading ? 'Solicitando…' : 'Confirmar e solicitar corrida'}
       </Button>
     </Page>

@@ -22,6 +22,7 @@ banco local vazio e então execute:
 
 ```powershell
 php artisan migrate
+php artisan storage:link
 php artisan serve --host=0.0.0.0 --port=8000
 ```
 
@@ -35,29 +36,92 @@ Em dois terminais separados:
 
 ```powershell
 cd appUser
-npm install
+npm ci
 npm start
 ```
 
 ```powershell
 cd appMotorista
-npm install
+npm ci
 npm start
 ```
 
+`npm ci` instala exatamente as versões do lockfile. Se aparecer conflito de
+versão entre React e ReactDOM, execute `npm ci` dentro de `appUser` e reinicie
+o Expo limpando o cache com `npx expo start --web --clear`.
+
 Leia o QR code com o Expo Go. Os apps usam `http://10.0.2.2:8000` no emulador
 Android e `http://localhost:8000` por padrão nos demais alvos. Em um aparelho
-físico, configure o IP acessível do computador antes de iniciar o Expo:
+físico na mesma rede Wi-Fi, abra outro terminal na raiz do repositório e inicie
+a API escutando na rede local:
 
 ```powershell
-$env:EXPO_PUBLIC_API_URL = "http://192.168.0.10:8000"
+cd api
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+Permita o PHP/porta 8000 no firewall do Windows e configure `EXPO_PUBLIC_API_URL`
+com o IPv4 do computador. Para desenvolvimento local, defina a variável antes
+de iniciar o app:
+
+```powershell
+$env:EXPO_PUBLIC_API_URL = "http://192.168.0.14:8000"
+cd appUser # ou appMotorista
 npm start
 ```
 
 O app acrescenta `/api` a esse endereço. O aparelho e o computador precisam
-estar na mesma rede; permita conexões locais na firewall. Autorize localização
+estar na mesma rede. Para o APK de teste EAS, o perfil `preview` dos dois apps
+está configurado com esse endereço local e permite HTTP apenas nesse perfil;
+o IP deve ser atualizado se mudar na rede. Builds `production` devem usar uma
+API publicada com HTTPS. Autorize localização
 e notificações quando solicitadas. Mapas e localização usam módulos compatíveis
 com Expo Go; na web os mapas são apenas informativos.
+
+O login tem a opção **Manter conectado neste dispositivo**. Quando marcada, o
+token e os dados da sessão são salvos no AsyncStorage; ao abrir o app, a API
+valida novamente a conta. Se ela tiver sido removida ou desativada, o app
+encerra a sessão; se a API estiver sem conexão, usa a sessão e o cache salvos,
+informando que podem estar desatualizados. Sem essa opção, o login só permanece
+até o app ser fechado. O logout remove também os dados em cache. Consultas da
+API são armazenadas por conta para exibição quando não há conexão.
+
+Passageiros e motoristas podem editar os dados pessoais e endereço na tela
+**Perfil/Conta**, alterar a senha mediante confirmação da senha atual e
+desativar a própria conta. Passageiros e motoristas podem tirar uma foto com a
+câmera ou escolher uma imagem da galeria; ela é enviada à API e armazenada em
+`storage/app/public/profile-photos`. Execute `php artisan storage:link` para
+que o Laravel sirva as imagens em `/storage`. Os cadastros consultam o ViaCEP
+para preencher logradouro, bairro, cidade e UF; ao criar uma corrida, o CEP
+também preenche o endereço, e o mapa é usado para marcar as coordenadas do
+embarque/destino.
+
+Eventos e locais sugeridos vêm das tabelas `tbEvento` e `tbPontoInteresse`.
+Favoritos de endereço e motorista, pagamentos e desempenho são carregados da
+API; não são exibidos saldos, promoções ou cadastros fictícios. Eventos e locais
+só aparecem quando existirem registros ativos no banco.
+
+## APK de teste pelo EAS
+
+Este repositório contém os dois apps em subpastas. A configuração de arquivos
+enviados ao EAS fica no `.easignore` da raiz do repositório; execute os comandos
+na pasta do app desejado para selecionar o projeto certo. O perfil `preview`
+gera um APK instalável para testes:
+
+```powershell
+cd appUser
+npx eas-cli@latest build --platform android --profile preview
+```
+
+```powershell
+cd appMotorista
+npx eas-cli@latest build --platform android --profile preview
+```
+
+Nos perfis `preview`, a URL já está
+definida como `http://192.168.0.14:8000`; altere-a nos dois `eas.json` se o IP
+local mudar. O EAS substitui as variáveis `EXPO_PUBLIC_*` no bundle durante a
+compilação.
 
 ## Roteiro de teste ponta a ponta
 
@@ -87,9 +151,16 @@ perfis uma vez ou use os requests de login ao repetir o roteiro.
 
 ## Limites atuais
 
-Eventos, promoções, favoritos, carteira, saque, aprovação administrativa,
-recuperação de senha e integrações de pagamento/push ainda são telas ou dados
-de demonstração; não fazem parte do fluxo persistido testável desta entrega.
+O painel administrativo da API fica em `/admin/login`. Administradores Master e
+Operadores podem consultar o dashboard e cadastrar, editar, ativar ou desativar
+eventos. Somente Masters podem consultar, editar ou desativar contas e alterar
+o status dos motoristas. O link **Cadastre-se como Operador** cria uma conta de
+Operador; para criar o primeiro Master no banco configurado, execute
+`php artisan admin:create-master` dentro da pasta `api`.
+
+Ainda não há gerenciamento de locais sugeridos, saldo/crédito de carteira,
+saque, recuperação de senha ou integração de pagamento/push. O pagamento segue
+simulado para testes.
 
 Antes de qualquer publicação, atualize e revise as dependências:
 `npm audit --omit=dev` reporta avisos de alta severidade nas árvores

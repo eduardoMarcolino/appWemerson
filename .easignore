@@ -1,0 +1,14 @@
+.git
+**/node_modules
+appUser/node_modules/
+appMotorista/node_modules/
+**/.expo
+**/.metro
+**/android
+**/ios
+**/build
+**/dist
+**/*.log
+api
+postman
+README.md

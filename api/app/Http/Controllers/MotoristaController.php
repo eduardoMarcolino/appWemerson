@@ -7,10 +7,12 @@ use App\Models\MotoristaModel;
 use App\Models\TelModel;
 use App\Models\UserModel;
 use App\Models\VeiculoModel;
+use App\Support\RideCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class MotoristaController extends Controller
@@ -44,7 +46,7 @@ class MotoristaController extends Controller
             'cor' => ['nullable', 'string', 'max:30'],
             'anoFabricacao' => ['nullable', 'integer', 'between:1900,2100'],
             'anoModelo' => ['nullable', 'integer', 'between:1900,2100'],
-            'categoria' => ['required', 'in:Economico,Comfort,SUV,Moto'],
+            'categoria' => ['required', Rule::in(RideCatalog::categoryValues())],
         ]);
 
         [$user, $motorista] = DB::transaction(function () use ($data): array {

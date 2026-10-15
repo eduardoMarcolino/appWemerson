@@ -2,20 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class admModel extends Model
 {
     use HasFactory;
 
-    protected $table = 'tbadministrador';
+    protected $table = 'tbAdministrador';
+
     protected $primaryKey = 'administradorId';
 
     public $timestamps = false;
 
     protected $fillable = [
         'userId',
-        'nivelAcesso'
+        'nivelAcesso',
     ];
 }

@@ -22,23 +22,27 @@ export function Button({ children, onPress, light = false, disabled = false }) {
   );
 }
 
-export function Field({ placeholder, value, secureTextEntry = false, onChangeText, keyboardType }) {
+export function Field({ label, placeholder, value, secureTextEntry = false, onChangeText, keyboardType, style }) {
   return (
-    <TextInput
-      placeholder={placeholder}
-      value={value}
-      secureTextEntry={secureTextEntry}
-      onChangeText={onChangeText}
-      keyboardType={keyboardType}
-      placeholderTextColor="#78847f"
-      style={s.field}
-    />
+    <View style={s.fieldWrap}>
+      {label ? <Text style={s.fieldLabel}>{label}</Text> : null}
+      <TextInput
+        accessibilityLabel={label || placeholder}
+        placeholder={placeholder}
+        value={value}
+        secureTextEntry={secureTextEntry}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        placeholderTextColor="#78847f"
+        style={[s.field, style]}
+      />
+    </View>
   );
 }
 
 export function Page({ title, children, go, back = 'Home', scroll = true }) {
   const { width } = useWindowDimensions();
-  const horizontalPadding = width < 360 ? 14 : width > 700 ? 24 : 20;
+  const horizontalPadding = width < 360 ? 14 : width > 720 ? 28 : 20;
 
   const body = (
     <View style={[s.content, { paddingHorizontal: horizontalPadding }]}>
@@ -47,7 +51,7 @@ export function Page({ title, children, go, back = 'Home', scroll = true }) {
           <Pressable onPress={() => go(back)} hitSlop={10}>
             <Text style={s.back}>‹</Text>
           </Pressable>
-          <Text style={s.title}>{title}</Text>
+          <Text numberOfLines={2} style={s.title}>{title}</Text>
         </View>
       )}
       {children}
@@ -109,6 +113,9 @@ export const s = StyleSheet.create({
   },
   content: {
     flex: 1,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
     padding: 20,
     gap: 14,
   },
@@ -124,6 +131,7 @@ export const s = StyleSheet.create({
     lineHeight: 30,
   },
   title: {
+    flexShrink: 1,
     fontSize: 18,
     fontWeight: '700',
     color: '#14231d',
@@ -152,7 +160,10 @@ export const s = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     fontSize: 14,
+    color: '#333',
   },
+  fieldWrap: { gap: 6 },
+  fieldLabel: { color: '#33483e', fontSize: 13, fontWeight: '700' },
   card: {
     backgroundColor: '#fff',
     borderRadius: 14,

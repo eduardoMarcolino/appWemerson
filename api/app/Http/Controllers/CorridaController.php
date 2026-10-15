@@ -10,10 +10,12 @@ use App\Models\MotoristaModel;
 use App\Models\PagamentoModel;
 use App\Models\PassageiroModel;
 use App\Models\VeiculoModel;
+use App\Support\RideCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class CorridaController extends Controller
 {
@@ -85,7 +87,7 @@ class CorridaController extends Controller
             'destino' => ['required', 'string', 'max:255'],
             'latitudeDestino' => ['required', 'numeric', 'between:-90,90'],
             'longitudeDestino' => ['required', 'numeric', 'between:-180,180'],
-            'categoria' => ['required', 'in:Economico,Comfort,SUV,Moto'],
+            'categoria' => ['required', Rule::in(RideCatalog::categoryValues())],
             'beneficiarioNome' => ['nullable', 'string', 'max:150'],
             'beneficiarioTelefone' => ['nullable', 'string', 'max:20'],
             'dataHora' => ['nullable', 'date', 'after:now'],
@@ -98,7 +100,7 @@ class CorridaController extends Controller
             (float) $data['latitudeDestino'],
             (float) $data['longitudeDestino'],
         );
-        $multiplier = ['Economico' => 1.0, 'Comfort' => 1.4, 'SUV' => 1.7, 'Moto' => 0.8][$data['categoria']];
+        $multiplier = RideCatalog::fareMultipliers()[$data['categoria']];
         $fare = round((4 + ($distance * 2.5)) * $multiplier, 2);
 
         $ride = DB::transaction(function () use ($data, $passenger, $distance, $fare): CorridaModel {
@@ -242,7 +244,7 @@ class CorridaController extends Controller
     {
         $passenger = $this->passenger($request);
         $data = $request->validate([
-            'formaPagamento' => ['required', 'in:Pix,Dinheiro,CartaoCredito,CartaoDebito,CarteiraDigital'],
+            'formaPagamento' => ['required', Rule::in(RideCatalog::paymentMethodValues())],
         ]);
         $ride = CorridaModel::findOrFail($corrida);
         abort_unless($ride->passageiroId === $passenger->passageiroId, 403);

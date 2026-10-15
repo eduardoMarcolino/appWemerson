@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Switch, Text, useWindowDimensions, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { api } from '../api';
 import { Avatar, Button, Card, Nav, s } from '../ui';
@@ -14,6 +14,7 @@ Notifications.setNotificationHandler({
 });
 
 export default function Home({ go, session, online, setOnline }) {
+  const { width } = useWindowDimensions();
   const [offers, setOffers] = useState([]);
   const [error, setError] = useState('');
   const [notificationWarning, setNotificationWarning] = useState('');
@@ -93,10 +94,20 @@ export default function Home({ go, session, online, setOnline }) {
     <View style={{ flex: 1 }}>
       <View style={{ backgroundColor: '#075c3e', padding: 20, paddingTop: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Pressable onPress={() => go('SideMenu')}><Text style={{ color: '#fff', fontSize: 23 }}>☰</Text></Pressable>
-        <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>Olá, {session.user?.nome || 'motorista'}!</Text>
+        <Text numberOfLines={1} style={{ flex: 1, color: '#fff', fontSize: width < 360 ? 16 : 19, fontWeight: '800', textAlign: 'center', marginHorizontal: 8 }}>Olá, {session.user?.nome || 'motorista'}!</Text>
         <Switch value={online} onValueChange={toggleOnline} />
       </View>
-      <View style={{ flex: 1, padding: 16, gap: 12 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          width: '100%',
+          maxWidth: 760,
+          alignSelf: 'center',
+          padding: width < 360 ? 12 : 16,
+          gap: 12,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Avatar initials={session.user?.nome?.slice(0, 2).toUpperCase() || 'MO'} />
           <View style={{ flex: 1 }}>
@@ -124,12 +135,12 @@ export default function Home({ go, session, online, setOnline }) {
             ['Ganhos', 'Earnings'],
             ['Desempenho', 'Performance'],
           ].map(([label, page]) => (
-            <Pressable key={page} onPress={() => go(page)} style={{ width: '48%', backgroundColor: '#eaf7f0', padding: 12, borderRadius: 10, alignItems: 'center' }}>
+            <Pressable key={page} onPress={() => go(page)} style={{ width: width < 360 ? '100%' : '47%', backgroundColor: '#eaf7f0', padding: 12, borderRadius: 10, alignItems: 'center' }}>
               <Text style={{ color: '#087a50', fontWeight: '800' }}>{label}</Text>
             </Pressable>
           ))}
         </View>
-      </View>
+      </ScrollView>
       <Nav go={go} active="Home" />
     </View>
   );

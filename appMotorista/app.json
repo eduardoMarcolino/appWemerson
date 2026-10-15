@@ -1,0 +1,20 @@
+{
+  "android": {
+    "package": "com.eduardocherubim.appmotorista"
+  },
+  "plugins": [
+    [
+      "expo-image-picker",
+      {
+        "photosPermission": "Permita que o Interior Go acesse suas fotos para atualizar sua foto de perfil.",
+        "cameraPermission": "Permita que o Interior Go use a câmera para tirar sua foto de perfil.",
+        "microphonePermission": false
+      }
+    ]
+  ],
+  "extra": {
+    "eas": {
+      "projectId": "fea61b92-8926-42a9-b0eb-03fe60b83d9a"
+    }
+  }
+}

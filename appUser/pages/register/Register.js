@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Text } from 'react-native';
+import { ActivityIndicator, Text, Pressable } from 'react-native';
 import { Button, Field, Page, s } from '../ui';
 import { api } from '../api';
+import CepAddressLookup from '../components/CepAddressLookup';
 
 export default function Register({ go }) {
   const [nome, setNome] = useState('');
@@ -19,6 +20,7 @@ export default function Register({ go }) {
   const [cep, setCep] = useState('');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
+  const [visibilidade, setVisibilidade] = useState(true);
 
   async function cadastrar() {
     setErro('');
@@ -65,21 +67,35 @@ export default function Register({ go }) {
     <Page title="Criar conta" go={go} back="Login">
       <Text style={s.muted}>Vamos criar sua conta</Text>
 
-      <Field placeholder="Nome completo" value={nome} onChangeText={setNome} />
-      <Field placeholder="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" />
-      <Field placeholder="Telefone (com DDD)" value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" />
-      <Field placeholder="CPF (somente números)" value={cpf} onChangeText={setCpf} keyboardType="number-pad" />
-      <Field placeholder="Senha" secureTextEntry value={senha} onChangeText={setSenha} />
-      <Field placeholder="Confirmar senha" secureTextEntry value={senha2} onChangeText={setSenha2} />
+      <Field label="Nome completo" placeholder="Digite seu nome" value={nome} onChangeText={setNome} />
+      <Field label="E-mail" placeholder="voce@exemplo.com" value={email} onChangeText={setEmail} keyboardType="email-address" />
+      <Field label="Telefone com DDD" placeholder="(00) 00000-0000" value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" />
+      <Field label="CPF" placeholder="Somente números" value={cpf} onChangeText={setCpf} keyboardType="number-pad" />
+      <Field label="Senha" placeholder="Mínimo 6 caracteres" secureTextEntry={visibilidade} value={senha} onChangeText={setSenha} />
+      <Field label="Confirmar senha" placeholder="Digite a senha novamente" secureTextEntry={visibilidade} value={senha2} onChangeText={setSenha2} />
+      <Pressable onPress={() => setVisibilidade(!visibilidade)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+        <Text style={s.muted}>Mostrar senha</Text>
+      </Pressable>
 
       <Text style={s.h2}>Endereço</Text>
-      <Field placeholder="Logradouro (rua/avenida)" value={logradouro} onChangeText={setLogradouro} />
-      <Field placeholder="Número" value={numero} onChangeText={setNumero} />
-      <Field placeholder="Complemento (opcional)" value={complemento} onChangeText={setComplemento} />
-      <Field placeholder="Bairro" value={bairro} onChangeText={setBairro} />
-      <Field placeholder="Cidade" value={cidade} onChangeText={setCidade} />
-      <Field placeholder="Estado (UF)" value={estado} onChangeText={setEstado} />
-      <Field placeholder="CEP (somente números)" value={cep} onChangeText={setCep} keyboardType="number-pad" />
+      <CepAddressLookup
+        cep={cep}
+        onChangeCep={setCep}
+        setError={setErro}
+        onAddressFound={(address) => {
+          setLogradouro(address.logradouro);
+          setBairro(address.bairro);
+          setCidade(address.cidade);
+          setEstado(address.estado);
+          setCep(address.cep);
+        }}
+      />
+      <Field label="Logradouro" placeholder="Rua ou avenida" value={logradouro} onChangeText={setLogradouro} />
+      <Field label="Número" placeholder="Número do imóvel" value={numero} onChangeText={setNumero} />
+      <Field label="Complemento" placeholder="Opcional" value={complemento} onChangeText={setComplemento} />
+      <Field label="Bairro" placeholder="Bairro" value={bairro} onChangeText={setBairro} />
+      <Field label="Cidade" placeholder="Cidade" value={cidade} onChangeText={setCidade} />
+      <Field label="Estado (UF)" placeholder="Ex.: SP" value={estado} onChangeText={setEstado} />
 
       {erro ? <Text style={[s.muted, { color: '#d94b45', textAlign: 'center' }]}>{erro}</Text> : null}
 

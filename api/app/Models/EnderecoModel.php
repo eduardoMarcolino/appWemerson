@@ -11,6 +11,8 @@ class EnderecoModel extends Model
 
     protected $table = 'tbEndereco';
 
+    protected $primaryKey = 'enderecoId';
+
     public $timestamps = false;
 
     protected $fillable = [

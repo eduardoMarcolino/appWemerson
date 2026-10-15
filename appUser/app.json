@@ -1,0 +1,20 @@
+{
+  "android": {
+    "package": "com.eduardocherubim.appuser"
+  },
+  "plugins": [
+    [
+      "expo-image-picker",
+      {
+        "photosPermission": "Permita que o Interior Go acesse suas fotos para atualizar sua foto de perfil.",
+        "cameraPermission": "Permita que o Interior Go use a câmera para tirar sua foto de perfil.",
+        "microphonePermission": false
+      }
+    ]
+  ],
+  "extra": {
+    "eas": {
+      "projectId": "9b689a94-bb29-4e23-9883-c478a244f106"
+    }
+  }
+}

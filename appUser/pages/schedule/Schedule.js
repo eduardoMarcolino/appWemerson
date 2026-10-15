@@ -38,7 +38,6 @@ export default function Schedule({ go, session, updateDraft }) {
             placeholder="AAAA-MM-DDTHH:MM"
             style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8e4', borderRadius: 10, padding: 14 }}
           />
-          <Text style={s.muted}>Exemplo: 2026-10-06T09:30</Text>
         </>
       ) : null}
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
