@@ -5,11 +5,13 @@ use App\Http\Controllers\AppDataController;
 use App\Http\Controllers\CorridaController;
 use App\Http\Controllers\MotoristaController;
 use App\Http\Controllers\PassageiroController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SessionController;
 use App\Support\RideCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::post('admin/insert', [AdminController::class, 'cadastro']);
 Route::post('/passageiro/insert', [PassageiroController::class, 'cadastro']);
 Route::post('/loginPassageiro', [PassageiroController::class, 'login']);
 Route::post('/motorista/insert', [MotoristaController::class, 'cadastro']);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, Switch, Text, useWindowDimensions, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, Switch, Text, useWindowDimensions, View, StyleSheet, Pressable } from 'react-native';
 import { Button, Field, green, s } from '../ui';
 import { api, persistSession } from '../api';
 
@@ -10,6 +10,7 @@ export default function Login({ go, setSession }) {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [visibilidade, setVisibilidade] = useState(true);
 
   async function entrar() {
     setErro('');
@@ -51,7 +52,10 @@ export default function Login({ go, setSession }) {
           <Text style={s.muted}>Entre para continuar</Text>
 
           <Field label="E-mail ou CPF" placeholder="Digite seu e-mail ou CPF" value={email} onChangeText={setEmail} keyboardType="email-address" />
-          <Field label="Senha" placeholder="Digite sua senha" secureTextEntry value={senha} onChangeText={setSenha} />
+          <Field label="Senha" placeholder="Digite sua senha" secureTextEntry={visibilidade} value={senha} onChangeText={setSenha} />
+          <Pressable onPress={() => setVisibilidade(!visibilidade)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={s.muted}>Mostrar senha</Text>
+          </Pressable>
           <View style={x.rememberRow}>
             <Switch value={rememberMe} onValueChange={setRememberMe} />
             <Text style={s.muted}>Manter conectado neste dispositivo</Text>

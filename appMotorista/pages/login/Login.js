@@ -10,6 +10,7 @@ export default function Login({ go, setSession }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [visibilidade, setVisibilidade] = useState(true);
 
   async function enter() {
     setError('');
@@ -39,7 +40,10 @@ export default function Login({ go, setSession }) {
           <Text style={x.welcome}>Olá, motorista!</Text>
           <Text style={s.muted}>Entre para começar</Text>
           <Field style={x.field} label="E-mail" placeholder="voce@exemplo.com" value={email} onChangeText={setEmail} keyboardType="email-address" />
-          <Field style={x.field} label="Senha" placeholder="Digite sua senha" value={senha} onChangeText={setSenha} secureTextEntry />
+          <Field style={x.field} label="Senha" placeholder="Digite sua senha" value={senha} onChangeText={setSenha} secureTextEntry={!visibilidade} />
+          <Pressable onPress={() => setVisibilidade(!visibilidade)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={s.muted}>Mostrar senha</Text>
+          </Pressable>
           <View style={x.rememberRow}>
             <Switch value={rememberMe} onValueChange={setRememberMe} />
             <Text style={s.muted}>Manter conectado neste dispositivo</Text>

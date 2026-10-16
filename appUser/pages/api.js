@@ -17,7 +17,11 @@ let cacheFallbackNotified = false;
 const client = axios.create({
   baseURL: API_URL,
   timeout: 15000,
-  headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+  },
 });
 
 client.interceptors.response.use(

@@ -72,11 +72,54 @@ npm start
 
 O app acrescenta `/api` a esse endereço. O aparelho e o computador precisam
 estar na mesma rede. Para o APK de teste EAS, o perfil `preview` dos dois apps
-está configurado com esse endereço local e permite HTTP apenas nesse perfil;
-o IP deve ser atualizado se mudar na rede. Builds `production` devem usar uma
-API publicada com HTTPS. Autorize localização
+usa o endereço HTTPS do túnel ngrok descrito abaixo. Builds `production` devem
+usar uma API publicada com HTTPS. Autorize localização
 e notificações quando solicitadas. Mapas e localização usam módulos compatíveis
 com Expo Go; na web os mapas são apenas informativos.
+
+## Expor a API local pelo ngrok
+
+O projeto inclui um túnel ngrok de desenvolvimento para a API Laravel. O
+servidor Laravel continua rodando localmente na porta 8000; o túnel só publica
+essa porta e não substitui o servidor. Inicie a API no primeiro terminal:
+
+```powershell
+cd api
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+No segundo terminal, configure o authtoken do ngrok como variável de ambiente
+da sessão (copie-o do painel do ngrok, mas não o salve no código ou em arquivos
+versionados) e inicie o túnel:
+
+```powershell
+cd api
+npm ci
+$env:NGROK_AUTHTOKEN = Read-Host -Prompt "Authtoken ngrok"
+$env:NGROK_ADDR = "localhost:8000"
+$env:NGROK_DOMAIN = "reviver-resurrect-silver.ngrok-free.dev"
+npm run dev:ngrok
+```
+
+O domínio precisa estar reservado na conta do ngrok associada ao authtoken.
+Mantenha os dois terminais abertos. O túnel mostra a URL pública da API; teste
+`https://reviver-resurrect-silver.ngrok-free.dev/up`. Se a API local estiver
+em outra porta, ajuste `NGROK_ADDR` (por exemplo, `localhost:8085`) e inicie o
+Laravel nessa mesma porta.
+
+Para executar o app no Expo Go apontando para o túnel, defina a URL antes de
+iniciar o Expo:
+
+```powershell
+$env:EXPO_PUBLIC_API_URL = "https://reviver-resurrect-silver.ngrok-free.dev"
+cd appUser # ou appMotorista
+npm start
+```
+
+Os perfis `preview` de ambos os APKs também usam esse domínio HTTPS. Gere o APK
+com o túnel e a API ainda ativos, e mantenha-os ativos para testar no celular.
+As requisições dos apps ignoram a página intermediária de aviso do plano
+gratuito do ngrok.
 
 O login tem a opção **Manter conectado neste dispositivo**. Quando marcada, o
 token e os dados da sessão são salvos no AsyncStorage; ao abrir o app, a API
@@ -118,10 +161,10 @@ cd appMotorista
 npx eas-cli@latest build --platform android --profile preview
 ```
 
-Nos perfis `preview`, a URL já está
-definida como `http://192.168.0.14:8000`; altere-a nos dois `eas.json` se o IP
-local mudar. O EAS substitui as variáveis `EXPO_PUBLIC_*` no bundle durante a
-compilação.
+Nos perfis `preview`, a URL já está definida como
+`https://reviver-resurrect-silver.ngrok-free.dev` nos dois `eas.json`. Se trocar
+o domínio reservado, atualize os dois arquivos. O EAS substitui as variáveis
+`EXPO_PUBLIC_*` no bundle durante a compilação.
 
 ## Roteiro de teste ponta a ponta
 

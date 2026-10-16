@@ -193,17 +193,17 @@ class AdminController extends Controller
 
             $user->save();
 
-            $adm->userId = $user->id;
-            $adm->nivelAcesso = 'Operador';
+            $adm->userId = $user->userId;
+            $adm->nivelAcesso = 'Master';
 
             $adm->save();
 
-            $telefone->userId = $user->id;
+            $telefone->userId = $user->userId;
             $telefone->numeroTelefone = $request->input('numeroTelefone');
 
             $telefone->save();
 
-            $endereco->userId = $user->id;
+            $endereco->userId = $user->userId;
             $endereco->logradouro = $request->input('logradouro');
             $endereco->numero = $request->input('numero');
             $endereco->bairro = $request->input('bairro');
@@ -215,15 +215,19 @@ class AdminController extends Controller
             $endereco->save();
 
             return response()->json([
-                'message' => 'Passageiro cadastrado com sucesso!',
-                'passageiro' => $adm,
+                'message' => 'Administrador cadastrado com sucesso!',
+                'adm' => $adm,
                 'endereco' => $endereco,
                 'telefone' => $telefone,
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erro ao cadastrar passageiro: '.$e->getMessage(),
+                'message' => 'Erro ao cadastrar administrador: '.$e->getMessage(),
+                'adm' => $adm,
+                'endereco' => $endereco,
+                'telefone' => $telefone,
+                'user' => $user
             ], 500);
         }
     }
