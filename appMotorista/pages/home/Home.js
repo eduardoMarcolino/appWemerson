@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, Switch, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Switch, useWindowDimensions, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { api } from '../api';
 import { Avatar, Button, Card, Nav, s } from '../ui';

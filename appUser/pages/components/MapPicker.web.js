@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React from 'react';
-import { Text, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { s } from '../ui';
 
 export default function MapPicker() {

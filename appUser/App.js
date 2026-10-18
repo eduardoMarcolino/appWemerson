@@ -1,5 +1,6 @@
+import { ThemedText as Text } from './pages/ui';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, SafeAreaView, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import Login from './pages/login/Login';
 import Register from './pages/register/Register';
 import Home from './pages/home/Home';
@@ -18,9 +19,13 @@ import SearchingDriver from './pages/searchingdriver/SearchingDriver';
 import Payment from './pages/payment/Payment';
 import RateDriver from './pages/ratedriver/RateDriver';
 import { api, clearStoredSession, loadRememberedSession, persistSession, setAuthToken, setAuthenticationExpiredHandler, setCacheFallbackHandler } from './pages/api';
+import { getThemeColors, setColorScheme } from './pages/ui';
 
 const screens = { Login, Register, Home, CityEvents, Favorites, History, Wallet, Profile, Account, SearchDestination, Schedule, MeetingPoint, Beneficiary, Category, SearchingDriver, Payment, RateDriver };
 export default function App() {
+  const colorScheme = useColorScheme();
+  setColorScheme(colorScheme);
+  const theme = getThemeColors(colorScheme);
   const [screen, setScreen] = useState('Login');
   const [restoring, setRestoring] = useState(true);
   const validationWarningShown = useRef(false);
@@ -142,9 +147,9 @@ export default function App() {
   }
   const Screen = screens[screen] || Login;
   return (
-    <SafeAreaView style={styles.app}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.shell}>
+    <SafeAreaView style={[styles.app, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+      <View style={[styles.shell, { backgroundColor: theme.background }]}>
         {restoring ? (
           <View style={styles.loading}><ActivityIndicator color="#087a50" /><Text>Verificando sessão…</Text></View>
         ) : (

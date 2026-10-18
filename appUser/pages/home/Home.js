@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, View, StyleSheet } from 'react-native';
 import { api } from '../api';
 import { Button, Card, Field, Nav, s } from '../ui';
 

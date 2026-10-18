@@ -84,8 +84,10 @@ class admController extends Controller
             ], 201);
 
         }catch(\Exception $e){
+            report($e);
+
             return response()->json([
-                'message' => 'Erro ao cadastrar passageiro: ' . $e->getMessage()
+                'message' => 'Não foi possível concluir o cadastro. Verifique os dados e tente novamente.',
             ], 500);
         }
     }

@@ -222,12 +222,10 @@ class AdminController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            report($e);
+
             return response()->json([
-                'message' => 'Erro ao cadastrar administrador: '.$e->getMessage(),
-                'adm' => $adm,
-                'endereco' => $endereco,
-                'telefone' => $telefone,
-                'user' => $user
+                'message' => 'Não foi possível cadastrar o administrador. Verifique os dados e tente novamente.',
             ], 500);
         }
     }

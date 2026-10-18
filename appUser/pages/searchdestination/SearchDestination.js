@@ -1,9 +1,11 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
 import { api } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
 import MapPicker from '../components/MapPicker';
 import CepAddressLookup from '../components/CepAddressLookup';
+import AddressSearch from '../components/AddressSearch';
 
 export default function SearchDestination({ go, session, updateDraft }) {
   const [query, setQuery] = useState('');
@@ -28,7 +30,29 @@ export default function SearchDestination({ go, session, updateDraft }) {
 
   return (
     <Page title="Para onde vamos?" go={go}>
-      <Field label="Pesquisar locais sugeridos" placeholder="Digite o nome do local" value={query} onChangeText={setQuery} />
+      
+      <AddressSearch
+        label="Pesquisar endereço ou local"
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setCep('');
+          setNumber('');
+          setCepAddress(null);
+          updateDraft({ destino: '', latitudeDestino: null, longitudeDestino: null });
+        }}
+        setError={setError}
+        onSelect={(place) => {
+          setCepAddress(null);
+          setCep('');
+          setNumber('');
+          updateDraft({
+            destino: place.label,
+            latitudeDestino: place.latitude,
+            longitudeDestino: place.longitude,
+          });
+        }}
+      />
       <Text style={s.h2}>Ou informe o CEP do destino</Text>
       <CepAddressLookup
         cep={cep}
@@ -60,35 +84,46 @@ export default function SearchDestination({ go, session, updateDraft }) {
         </>
       ) : null}
       <Text style={s.h2}>Sugestões</Text>
+
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
-      {suggestions.length === 0 && !error ? <Text style={s.muted}>Nenhum destino cadastrado corresponde à pesquisa.</Text> : null}
+
+      {suggestions.length === 0 && !error && !session.tripDraft.destino
+        ? <Text style={s.muted}>Nenhum destino cadastrado corresponde à pesquisa.</Text>
+        : null}
+
       {suggestions.map((place) => (
+
         <Pressable key={place.pontoInteresseId} onPress={() => {
           setCepAddress(null);
           setCep('');
           setNumber('');
+          setQuery(place.nome);
           updateDraft({
             destino: place.nome,
             latitudeDestino: Number(place.latitude),
             longitudeDestino: Number(place.longitude),
           });
         }}>
+
           <Card style={session.tripDraft.destino === place.nome ? { borderColor: '#087a50', borderWidth: 2 } : null}>
             <Text style={{ fontWeight: '700' }}>📍 {place.nome}</Text>
             <Text style={s.muted}>{place.descricao || place.logradouro || 'Toque para selecionar como destino'}</Text>
           </Card>
+
         </Pressable>
       ))}
+
       <MapPicker
         value={session.tripDraft.latitudeDestino !== null && session.tripDraft.longitudeDestino !== null
           ? { latitude: session.tripDraft.latitudeDestino, longitude: session.tripDraft.longitudeDestino }
           : null}
         onChange={(coordinate) => updateDraft({
-          destino: cepAddress ? addressLabel() : 'Ponto selecionado no mapa',
+          destino: cepAddress ? addressLabel() : query.trim() || 'Ponto selecionado no mapa',
           latitudeDestino: coordinate.latitude,
           longitudeDestino: coordinate.longitude,
         })}
       />
+
       <Button onPress={() => go('Schedule')} disabled={!session.tripDraft.destino}>
         Continuar
       </Button>

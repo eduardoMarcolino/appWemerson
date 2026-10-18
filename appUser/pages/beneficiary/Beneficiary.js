@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
 import { Button, Card, Field, Page, s } from '../ui';
 
 export default function Beneficiary({ go, session, updateDraft }) {

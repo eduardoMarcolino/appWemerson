@@ -1,6 +1,7 @@
+import { ThemedText as Text } from '../ui';
 import React from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { s } from '../ui';
 
 export default function RideMap() {

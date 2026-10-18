@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Text, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { api, persistSession } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
 import CepAddressLookup from '../components/CepAddressLookup';
@@ -57,6 +58,7 @@ export default function RegisterDriver({ go, setSession }) {
       const payload = {
         ...form,
         cpf: form.cpf.replace(/\D/g, ''),
+        numeroTelefone: form.numeroTelefone.replace(/\D/g, ''),
         anoFabricacao: form.anoFabricacao ? Number(form.anoFabricacao) : null,
         anoModelo: form.anoModelo ? Number(form.anoModelo) : null,
       };

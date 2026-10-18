@@ -1,6 +1,7 @@
+import { ThemedText as Text } from '../ui';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { green, s } from '../ui';
+import { Pressable, ScrollView, StyleSheet, useColorScheme, useWindowDimensions, View } from 'react-native';
+import { getThemeColors, green, s } from '../ui';
 
 const items = [
   ['Home', 'Home'],
@@ -12,32 +13,34 @@ const items = [
 
 export default function SideMenu({ go, onLogout }) {
   const { width } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const theme = getThemeColors(colorScheme);
 
   return (
     <ScrollView
-      style={x.scrollView}
+      style={[x.scrollView, { backgroundColor: theme.background }]}
       contentContainerStyle={[
         x.page,
-        { paddingHorizontal: width < 360 ? 16 : 22 },
+        { paddingHorizontal: width < 360 ? 16 : 22, backgroundColor: theme.background },
       ]}
     >
       <View style={x.content}>
-        <Pressable onPress={() => go('Home')}><Text style={x.close}>×</Text></Pressable>
-        <View style={x.brand}>
-          <Text style={x.logo}>InteriorGo</Text>
+        <Pressable onPress={() => go('Home')}><Text style={[x.close, { color: theme.text }]}>×</Text></Pressable>
+        <View style={[x.brand, { borderBottomColor: theme.border }]}>
+          <Text style={[x.logo, { color: colorScheme === 'dark' ? '#92d3b3' : green }]}>InteriorGo</Text>
           <Text style={s.muted}>Menu do motorista</Text>
         </View>
         {items.map(([label, target]) => (
           <Pressable key={label} onPress={() => go(target)} style={x.item}>
             <Text style={x.icon}>•</Text>
-            <Text style={x.label}>{label}</Text>
+            <Text style={[x.label, { color: theme.text }]}>{label}</Text>
           </Pressable>
         ))}
         <Pressable onPress={onLogout} style={x.item}>
           <Text style={x.icon}>•</Text>
           <Text style={[x.label, { color: '#d94b45' }]}>Sair da conta</Text>
         </Pressable>
-        <Text style={x.version}>Versão de testes</Text>
+        <Text style={[x.version, { color: theme.secondaryText }]}>Versão de testes</Text>
       </View>
     </ScrollView>
   );

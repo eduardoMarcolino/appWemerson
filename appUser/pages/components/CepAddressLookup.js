@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Button, Field } from '../ui';
 
 export default function CepAddressLookup({ cep, onChangeCep, onAddressFound, error, setError }) {

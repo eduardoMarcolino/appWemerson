@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React from 'react';
-import { Text } from 'react-native';
+
 import RideMap from '../components/RideMap';
 import { Button, Card, Location, Page, s } from '../ui';
 

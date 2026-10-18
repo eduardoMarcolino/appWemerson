@@ -1,14 +1,36 @@
-import React, { useState } from 'react';
-import { Text, useWindowDimensions, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { ThemedText as Text } from '../ui';
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform, useWindowDimensions, View } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Button, s } from '../ui';
 
 export default function MapPicker({ value, onChange = () => {}, interactive = true }) {
   const { width } = useWindowDimensions();
   const [error, setError] = useState('');
-  const coordinate = value;
+  const mapRef = useRef(null);
+  const coordinate = value
+    && value.latitude !== null && value.latitude !== undefined && value.latitude !== ''
+    && value.longitude !== null && value.longitude !== undefined && value.longitude !== ''
+    && Number.isFinite(Number(value.latitude))
+    && Number.isFinite(Number(value.longitude))
+    && Math.abs(Number(value.latitude)) <= 90
+    && Math.abs(Number(value.longitude)) <= 180
+    ? { latitude: Number(value.latitude), longitude: Number(value.longitude) }
+    : null;
   const mapHeight = Math.min(Math.max((Math.min(width, 760) - 32) * 0.55, 180), 320);
+  const latitude = coordinate?.latitude;
+  const longitude = coordinate?.longitude;
+
+  useEffect(() => {
+    if (latitude === undefined || longitude === undefined) return;
+    mapRef.current?.animateToRegion({
+      latitude,
+      longitude,
+      latitudeDelta: 0.025,
+      longitudeDelta: 0.025,
+    }, 350);
+  }, [latitude, longitude]);
 
   async function useCurrentLocation() {
     setError('');
@@ -24,16 +46,21 @@ export default function MapPicker({ value, onChange = () => {}, interactive = tr
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-    } catch (locationError) {
-      setError(`Não foi possível obter sua localização: ${locationError.message}`);
+    } catch {
+      setError('Não foi possível obter sua localização. Tente novamente ou escolha um ponto no mapa.');
     }
   }
 
   return (
     <View style={{ gap: 8 }}>
       <MapView
-        style={{ height: mapHeight, borderRadius: 14 }}
-        region={coordinate ? { ...coordinate, latitudeDelta: 0.025, longitudeDelta: 0.025 } : undefined}
+        ref={mapRef}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+        style={{ width: '100%', height: mapHeight, borderRadius: 14 }}
+        initialRegion={coordinate
+          ? { ...coordinate, latitudeDelta: 0.025, longitudeDelta: 0.025 }
+          : { latitude: -15.78, longitude: -47.93, latitudeDelta: 20, longitudeDelta: 20 }}
+        loadingEnabled
         onPress={interactive ? (event) => onChange(event.nativeEvent.coordinate) : undefined}
         scrollEnabled={interactive}
         zoomEnabled={interactive}

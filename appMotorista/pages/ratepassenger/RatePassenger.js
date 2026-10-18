@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+
 import { api } from '../api';
 import { Button, Field, Page, s } from '../ui';
 

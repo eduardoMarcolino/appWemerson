@@ -1,7 +1,8 @@
+import { ThemedText as Text } from '../ui';
 import React, { useState } from 'react';
-import { Pressable, Text, TextInput } from 'react-native';
+import { Pressable } from 'react-native';
 import { api } from '../api';
-import { Button, Card, Page, s } from '../ui';
+import { Button, Card, Field, Page, s } from '../ui';
 
 export default function RateDriver({ go, session }) {
   const [rating, setRating] = useState(5);
@@ -51,11 +52,10 @@ export default function RateDriver({ go, session }) {
           <Text key={star} onPress={() => setRating(star)}>{star <= rating ? '★' : '☆'}</Text>
         ))}
       </Text>
-      <Text style={s.muted}>Comentário opcional</Text>
-      <TextInput
+      <Field
+        label="Comentário opcional"
         value={comment}
         onChangeText={setComment}
-        style={{ height: 110, backgroundColor: '#fff', borderRadius: 10, padding: 14, textAlignVertical: 'top' }}
         placeholder="Conte como foi sua experiência."
         multiline
         maxLength={1000}

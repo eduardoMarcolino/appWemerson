@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Button, Card, Divider, Metric, Page, s } from '../ui';
 
 export default function RideComplete({ go, session }) {

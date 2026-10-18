@@ -151,6 +151,44 @@ enviados ao EAS fica no `.easignore` da raiz do repositório; execute os comando
 na pasta do app desejado para selecionar o projeto certo. O perfil `preview`
 gera um APK instalável para testes:
 
+Os mapas dos apps appUser e appMotorista usam o Google Maps nativo fornecido
+pelo `react-native-maps`; não dependem do mapa embutido no Expo Go. Para compilar
+os APKs com o mapa funcionando, crie uma chave no Google Cloud, habilite
+**Maps SDK for Android** e restrinja-a aos pacotes `com.eduardocherubim.appuser`
+e `com.eduardocherubim.appmotorista`, com o SHA-1 do certificado que assina cada
+APK. Para builds EAS, obtenha o SHA-1 de cada app com `eas credentials -p
+android` dentro da pasta correspondente. Cadastre a chave como
+variável secreta no ambiente EAS `preview` de cada projeto:
+
+```powershell
+cd appUser
+npx eas-cli@latest env:create --name GOOGLE_MAPS_API_KEY --value "SUA_CHAVE" --environment preview --visibility secret
+```
+
+Repita o comando dentro de `appMotorista` para o projeto do motorista. A mesma
+chave pode ser usada pelos dois apps se as restrições Android incluírem os dois
+pares pacote/SHA-1; alternativamente, crie uma chave separada para cada app.
+
+Não coloque a chave no código, em `app.json` ou em arquivos `.env` commitados.
+O `app.config.js` de cada app injeta a chave no plugin nativo durante o build e
+interrompe o build EAS Android com uma mensagem clara se ela estiver ausente.
+Como toda chave usada por um app Android precisa estar no APK, as restrições de
+pacote, SHA-1 e API são essenciais. Para compilar localmente, defina
+`GOOGLE_MAPS_API_KEY` no terminal antes de gerar os arquivos nativos:
+
+```powershell
+$env:GOOGLE_MAPS_API_KEY = "SUA_CHAVE"
+npx expo prebuild --platform android
+npx expo run:android
+```
+
+Os campos exibem rótulos visíveis e formatam CPF, telefone e CEP durante a
+digitação; os valores são enviados à API sem pontuação. A aparência acompanha
+o modo claro/escuro do sistema. A pesquisa de endereços do appUser usa
+OpenStreetMap/Nominatim e requer internet; os resultados são atribuídos a
+OpenStreetMap. O agendamento usa seletores nativos de data e horário no app e
+um campo de data/hora no navegador, aceitando somente horários futuros.
+
 ```powershell
 cd appUser
 npx eas-cli@latest build --platform android --profile preview

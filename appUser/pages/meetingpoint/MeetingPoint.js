@@ -1,12 +1,15 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
 import { api } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
 import MapPicker from '../components/MapPicker';
 import CepAddressLookup from '../components/CepAddressLookup';
+import AddressSearch from '../components/AddressSearch';
 
 export default function MeetingPoint({ go, session, updateDraft }) {
   const [cep, setCep] = useState('');
+  const [query, setQuery] = useState('');
   const [number, setNumber] = useState('');
   const [cepAddress, setCepAddress] = useState(null);
   const [points, setPoints] = useState([]);
@@ -27,6 +30,28 @@ export default function MeetingPoint({ go, session, updateDraft }) {
   return (
     <Page title="Ponto de embarque" go={go} back="Schedule">
       <Text style={s.muted}>Selecione um ponto sugerido, pesquise um CEP ou escolha o local no mapa.</Text>
+      <AddressSearch
+        label="Pesquisar endereço de embarque"
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setCep('');
+          setNumber('');
+          setCepAddress(null);
+          updateDraft({ origem: '', latitudeOrigem: null, longitudeOrigem: null });
+        }}
+        setError={setError}
+        onSelect={(place) => {
+          setCepAddress(null);
+          setCep('');
+          setNumber('');
+          updateDraft({
+            origem: place.label,
+            latitudeOrigem: place.latitude,
+            longitudeOrigem: place.longitude,
+          });
+        }}
+      />
       <CepAddressLookup
         cep={cep}
         onChangeCep={(value) => {
@@ -62,7 +87,7 @@ export default function MeetingPoint({ go, session, updateDraft }) {
           ? { latitude: session.tripDraft.latitudeOrigem, longitude: session.tripDraft.longitudeOrigem }
           : null}
         onChange={(coordinate) => updateDraft({
-          origem: cepAddress ? addressLabel() : 'Ponto selecionado no mapa',
+          origem: cepAddress ? addressLabel() : query.trim() || 'Ponto selecionado no mapa',
           latitudeOrigem: coordinate.latitude,
           longitudeOrigem: coordinate.longitude,
         })}
@@ -72,6 +97,7 @@ export default function MeetingPoint({ go, session, updateDraft }) {
           setCepAddress(null);
           setCep('');
           setNumber('');
+          setQuery(point.nome);
           updateDraft({
             origem: point.nome,
             latitudeOrigem: Number(point.latitude),

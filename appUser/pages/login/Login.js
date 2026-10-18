@@ -1,10 +1,14 @@
+import { ThemedText as Text } from '../ui';
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, Switch, Text, useWindowDimensions, View, StyleSheet, Pressable } from 'react-native';
-import { Button, Field, green, s } from '../ui';
+import { ActivityIndicator, ScrollView, Switch, useColorScheme, useWindowDimensions, View, StyleSheet, Pressable } from 'react-native';
+import { Button, Field, getThemeColors, green, s } from '../ui';
 import { api, persistSession } from '../api';
 
 export default function Login({ go, setSession }) {
   const { height } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const theme = getThemeColors(colorScheme);
+  const linkColor = colorScheme === 'dark' ? '#92d3b3' : green;
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,10 +44,14 @@ export default function Login({ go, setSession }) {
   }
 
   return (
-    <ScrollView style={x.scrollView} contentContainerStyle={x.scroll} keyboardShouldPersistTaps="handled">
-      <View style={x.page}>
-        <View style={[x.hero, { height: Math.min(Math.max(height * 0.32, 150), 280) }]}>
-          <Text style={x.logo}>📍 InteriorGo</Text>
+    <ScrollView
+      style={[x.scrollView, { backgroundColor: theme.background }]}
+      contentContainerStyle={[x.scroll, { backgroundColor: theme.background }]}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={[x.page, { backgroundColor: theme.background }]}>
+        <View style={[x.hero, { height: Math.min(Math.max(height * 0.32, 150), 280), backgroundColor: colorScheme === 'dark' ? theme.surface : '#edf7f1' }]}>
+          <Text style={[x.logo, { color: linkColor }]}>📍 InteriorGo</Text>
           <Text style={x.road}>🚗 🏘️</Text>
         </View>
 
@@ -61,7 +69,7 @@ export default function Login({ go, setSession }) {
             <Text style={s.muted}>Manter conectado neste dispositivo</Text>
           </View>
 
-          <Text style={x.link}>Esqueceu a senha?</Text>
+          <Text style={[x.link, { color: linkColor }]}>Esqueceu a senha?</Text>
 
           {erro ? <Text style={x.error}>{erro}</Text> : null}
 
@@ -69,9 +77,9 @@ export default function Login({ go, setSession }) {
             {loading ? <ActivityIndicator color="#fff" size="small" /> : 'Entrar'}
           </Button>
 
-          <Text style={x.signup}>
+          <Text style={[x.signup, { color: theme.secondaryText }]}>
             Não tem uma conta?{' '}
-            <Text style={x.link} onPress={() => go('Register')}>
+            <Text style={[x.link, { color: linkColor }]} onPress={() => go('Register')}>
               Cadastre-se
             </Text>
           </Text>

@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Text } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { api } from '../api';
 import { Button, Card, Page, s } from '../ui';

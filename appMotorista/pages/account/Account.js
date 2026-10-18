@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { api, updateStoredSession } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
 
@@ -68,6 +69,7 @@ export default function Account({ go, session, setSession, onLogout }) {
       const payload = {
         ...form,
         cpf: form.cpf.replace(/\D/g, ''),
+        numeroTelefone: form.numeroTelefone.replace(/\D/g, ''),
         cep: form.cep.replace(/\D/g, '') || null,
         novaSenha: form.novaSenha || null,
         novaSenha_confirmation: form.novaSenha_confirmation || null,

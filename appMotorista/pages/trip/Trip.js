@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+
 import * as Location from 'expo-location';
 import RideMap from '../components/RideMap';
 import { api } from '../api';

@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useState } from 'react';
-import { Alert, Image, Text } from 'react-native';
+import { Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { profilePhotoUrl, updateStoredSession, uploadProfilePhoto } from '../api';
 import { Avatar, Button, Card, Page, s } from '../ui';

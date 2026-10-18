@@ -1,4 +1,5 @@
 {
+  "userInterfaceStyle": "automatic",
   "android": {
     "package": "com.eduardocherubim.appmotorista"
   },

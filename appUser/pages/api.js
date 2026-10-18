@@ -31,15 +31,20 @@ client.interceptors.response.use(
       || (error.response?.status === 403 && error.config?.url?.endsWith('/session'))) {
       onAuthenticationExpired?.();
     }
-    const validationMessage = Object.values(error.response?.data?.errors || {}).flat()[0];
+    const status = error.response?.status;
+    const validationMessage = status === 422
+      ? Object.values(error.response?.data?.errors || {}).flat()[0]
+      : null;
     const message = validationMessage
-      || error.response?.data?.message
-      || (error.code === 'ECONNABORTED'
-        ? 'A API demorou para responder. Tente novamente.'
-        : `Falha ao conectar com a API: ${error.message}`);
+      || (status >= 500
+        ? 'Ocorreu um erro no servidor. Tente novamente mais tarde.'
+        : error.response?.data?.message
+          || (error.code === 'ECONNABORTED'
+            ? 'A API demorou para responder. Tente novamente.'
+            : 'Não foi possível conectar à API. Verifique sua conexão e tente novamente.'));
 
     const requestError = new Error(message);
-    requestError.status = error.response?.status;
+    requestError.status = status;
     return Promise.reject(requestError);
   },
 );

@@ -1,5 +1,6 @@
+import { ThemedText as Text } from './pages/ui';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, SafeAreaView, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import { api, clearStoredSession, loadRememberedSession, persistSession, setAuthToken, setAuthenticationExpiredHandler, setCacheFallbackHandler } from './pages/api';
 import Login from './pages/login/Login';
 import RegisterDriver from './pages/register/RegisterDriver';
@@ -19,6 +20,7 @@ import Performance from './pages/performance/Performance';
 import Profile from './pages/profile/Profile';
 import Account from './pages/account/Account';
 import SideMenu from './pages/sidemenu/SideMenu';
+import { getThemeColors, setColorScheme } from './pages/ui';
 
 const screens = {
   Login, RegisterDriver, Home, NewRequest, RideDetails, RideAccepted, StartRide, Trip, FinishRide,
@@ -26,6 +28,9 @@ const screens = {
 };
 
 export default function App() {
+  const colorScheme = useColorScheme();
+  setColorScheme(colorScheme);
+  const theme = getThemeColors(colorScheme);
   const [screen, setScreen] = useState('Login');
   const [restoring, setRestoring] = useState(true);
   const [session, setSession] = useState({ user: null, motorista: null, activeRide: null });
@@ -131,9 +136,9 @@ export default function App() {
   }
   const Screen = screens[screen] || Login;
   return (
-    <SafeAreaView style={styles.app}>
-      <StatusBar barStyle={screen === 'RideAccepted' ? 'light-content' : 'dark-content'} />
-      <View style={styles.shell}>
+    <SafeAreaView style={[styles.app, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={colorScheme === 'dark' || screen === 'RideAccepted' ? 'light-content' : 'dark-content'} />
+      <View style={[styles.shell, { backgroundColor: theme.background }]}>
         {restoring ? (
           <View style={styles.loading}><ActivityIndicator color="#087a50" /><Text>Verificando sessão…</Text></View>
         ) : (

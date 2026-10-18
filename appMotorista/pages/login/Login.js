@@ -1,10 +1,14 @@
+import { ThemedText as Text } from '../ui';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, useColorScheme, useWindowDimensions, View } from 'react-native';
 import { api, persistSession } from '../api';
-import { Button, Field, green, s } from '../ui';
+import { Button, Field, getThemeColors, green, s } from '../ui';
 
 export default function Login({ go, setSession }) {
   const { height } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const theme = getThemeColors(colorScheme);
+  const linkColor = colorScheme === 'dark' ? '#92d3b3' : green;
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
@@ -29,15 +33,19 @@ export default function Login({ go, setSession }) {
   }
 
   return (
-    <ScrollView style={x.scrollView} contentContainerStyle={x.scroll} keyboardShouldPersistTaps="handled">
-      <View style={x.page}>
-        <View style={[x.hero, { height: Math.min(Math.max(height * 0.32, 150), 280) }]}>
-          <Text style={x.logo}>InteriorGo</Text>
-          <Text style={x.tagline}>Seu caminho pelo interior</Text>
+    <ScrollView
+      style={[x.scrollView, { backgroundColor: theme.background }]}
+      contentContainerStyle={[x.scroll, { backgroundColor: theme.background }]}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={[x.page, { backgroundColor: theme.background }]}>
+        <View style={[x.hero, { height: Math.min(Math.max(height * 0.32, 150), 280), backgroundColor: colorScheme === 'dark' ? theme.surface : '#edf7f1' }]}>
+          <Text style={[x.logo, { color: linkColor }]}>InteriorGo</Text>
+          <Text style={[x.tagline, { color: theme.secondaryText }]}>Seu caminho pelo interior</Text>
           <Text style={x.car}>🚗</Text>
         </View>
         <View style={x.form}>
-          <Text style={x.welcome}>Olá, motorista!</Text>
+          <Text style={[x.welcome, { color: theme.text }]}>Olá, motorista!</Text>
           <Text style={s.muted}>Entre para começar</Text>
           <Field style={x.field} label="E-mail" placeholder="voce@exemplo.com" value={email} onChangeText={setEmail} keyboardType="email-address" />
           <Field style={x.field} label="Senha" placeholder="Digite sua senha" value={senha} onChangeText={setSenha} secureTextEntry={!visibilidade} />
@@ -52,9 +60,9 @@ export default function Login({ go, setSession }) {
           <Button onPress={enter} disabled={loading || !email.trim() || !senha}>
             {loading ? 'Entrando…' : 'Entrar'}
           </Button>
-          <Text style={x.or}>Entre com sua conta de motorista</Text>
+          <Text style={[x.or, { color: theme.secondaryText }]}>Entre com sua conta de motorista</Text>
           <Pressable onPress={() => go('RegisterDriver')}>
-            <Text style={x.signup}>Não tem conta? <Text style={x.link}>Cadastre-se</Text></Text>
+            <Text style={[x.signup, { color: theme.secondaryText }]}>Não tem conta? <Text style={[x.link, { color: linkColor }]}>Cadastre-se</Text></Text>
           </Pressable>
         </View>
       </View>

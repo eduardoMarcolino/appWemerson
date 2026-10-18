@@ -1,5 +1,6 @@
+import { ThemedText as Text } from '../ui';
 import React, { useState } from 'react';
-import { ActivityIndicator, Text, Pressable } from 'react-native';
+import { ActivityIndicator, Pressable } from 'react-native';
 import { Button, Field, Page, s } from '../ui';
 import { api } from '../api';
 import CepAddressLookup from '../components/CepAddressLookup';
@@ -41,7 +42,7 @@ export default function Register({ go }) {
         cpf: cpf.replace(/\D/g, ''),
         senha,
         fotoPerfil: '',
-        numeroTelefone: telefone,
+        numeroTelefone: telefone.replace(/\D/g, ''),
         logradouro: logradouro.trim(),
         numero: numero.trim(),
         complemento: complemento.trim(),
