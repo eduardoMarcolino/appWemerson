@@ -16,6 +16,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CorridaController extends Controller
 {
@@ -77,40 +80,61 @@ class CorridaController extends Controller
         return response()->json($rides);
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        $passenger = $this->passenger($request);
-        $data = $request->validate([
-            'origem' => ['required', 'string', 'max:255'],
-            'latitudeOrigem' => ['required', 'numeric', 'between:-90,90'],
-            'longitudeOrigem' => ['required', 'numeric', 'between:-180,180'],
-            'destino' => ['required', 'string', 'max:255'],
-            'latitudeDestino' => ['required', 'numeric', 'between:-90,90'],
-            'longitudeDestino' => ['required', 'numeric', 'between:-180,180'],
-            'categoria' => ['required', Rule::in(RideCatalog::categoryValues())],
-            'beneficiarioNome' => ['nullable', 'string', 'max:150'],
-            'beneficiarioTelefone' => ['nullable', 'string', 'max:20'],
-            'dataHora' => ['nullable', 'date', 'after:now'],
-            'tokenCompartilhamento' => ['nullable', 'string', 'max:255'],
-        ]);
+    
+public function store(Request $request): JsonResponse
+{
+    $passenger = $this->passenger($request);
 
-        $distance = $this->distanceKm(
-            (float) $data['latitudeOrigem'],
-            (float) $data['longitudeOrigem'],
-            (float) $data['latitudeDestino'],
-            (float) $data['longitudeDestino'],
-        );
-        $multiplier = RideCatalog::fareMultipliers()[$data['categoria']];
-        $fare = round((4 + ($distance * 2.5)) * $multiplier, 2);
+    $data = $request->validate([
+        'origem' => ['required', 'string', 'max:255'],
+        'latitudeOrigem' => ['required', 'numeric', 'between:-90,90'],
+        'longitudeOrigem' => ['required', 'numeric', 'between:-180,180'],
+        'destino' => ['required', 'string', 'max:255'],
+        'latitudeDestino' => ['required', 'numeric', 'between:-90,90'],
+        'longitudeDestino' => ['required', 'numeric', 'between:-180,180'],
+        'categoria' => ['required', Rule::in(RideCatalog::categoryValues())],
+        'beneficiarioNome' => ['nullable', 'string', 'max:150'],
+        'beneficiarioTelefone' => ['nullable', 'string', 'max:20'],
+        'dataHora' => ['nullable', 'date', 'after:now'],
+        'tokenCompartilhamento' => ['nullable', 'string', 'max:255'],
+    ]);
 
-        $ride = DB::transaction(function () use ($data, $passenger, $distance, $fare): CorridaModel {
+    // Converte a data recebida para UTC e para o formato
+    // convencional aceito pela coluna DATETIME do MySQL.
+    $dataHoraAgendada = null;
+
+    if (!empty($data['dataHora'])) {
+        $dataHoraAgendada = Carbon::parse($data['dataHora'])
+            ->utc()
+            ->format('Y-m-d H:i:s');
+    }
+
+    $distance = $this->distanceKm(
+        (float) $data['latitudeOrigem'],
+        (float) $data['longitudeOrigem'],
+        (float) $data['latitudeDestino'],
+        (float) $data['longitudeDestino'],
+    );
+
+    $multiplier = RideCatalog::fareMultipliers()[$data['categoria']];
+    $fare = round((4 + ($distance * 2.5)) * $multiplier, 2);
+
+    try {
+        $ride = DB::transaction(function () use (
+            $data,
+            $passenger,
+            $distance,
+            $fare,
+            $dataHoraAgendada
+        ): CorridaModel {
             $schedule = null;
-            if (! empty($data['dataHora'])) {
+
+            if ($dataHoraAgendada !== null) {
                 $schedule = CorridaAgendadaModel::create([
                     'passageiroId' => $passenger->passageiroId,
                     'origem' => $data['origem'],
                     'destino' => $data['destino'],
-                    'dataHora' => $data['dataHora'],
+                    'dataHora' => $dataHoraAgendada,
                     'status' => 'Agendada',
                 ]);
             }
@@ -133,12 +157,23 @@ class CorridaController extends Controller
                 'status' => 'Solicitada',
             ]);
         });
+    } catch (Throwable $exception) {
+        Log::error('Falha ao criar corrida no InteriorGo.', [
+            'exception' => get_class($exception),
+            'message' => $exception->getMessage(),
+        ]);
 
-        return response()->json([
-            'message' => $ride->corridaAgendadaId ? 'Corrida agendada.' : 'Corrida solicitada.',
-            'corrida' => $this->ridePayload($ride),
-        ], 201);
+        throw $exception;
     }
+
+    return response()->json([
+        'message' => $ride->corridaAgendadaId
+            ? 'Corrida agendada.'
+            : 'Corrida solicitada.',
+        'corrida' => $this->ridePayload($ride),
+    ], 201);
+}
+
 
     public function show(Request $request, int $corrida): JsonResponse
     {
