@@ -20,6 +20,7 @@ import Performance from './pages/performance/Performance';
 import Profile from './pages/profile/Profile';
 import Account from './pages/account/Account';
 import SideMenu from './pages/sidemenu/SideMenu';
+import ActiveRideSheet from './pages/components/ActiveRideSheet';
 import { getThemeColors, setColorScheme } from './pages/ui';
 
 const screens = {
@@ -33,6 +34,7 @@ export default function App() {
   const theme = getThemeColors(colorScheme);
   const [screen, setScreen] = useState('Login');
   const [restoring, setRestoring] = useState(true);
+  const [sheetRide, setSheetRide] = useState(null);
   const [session, setSession] = useState({ user: null, motorista: null, activeRide: null });
   const [online, setOnline] = useState(false);
   const validationWarningShown = useRef(false);
@@ -43,6 +45,7 @@ export default function App() {
         .then(() => {
           setAuthToken(null);
           setSession({ user: null, motorista: null, activeRide: null });
+          setSheetRide(null);
           setOnline(false);
           setScreen('Login');
           if (active) Alert.alert('Sessão encerrada', 'Sua conta não está mais disponível.');
@@ -59,7 +62,8 @@ export default function App() {
 
         try {
           const { data } = await api.get('/session');
-          const restored = { ...data, activeRide: null };
+          const { data: activeRideData } = await api.getLive('/corridas/ativa');
+          const restored = { ...data, activeRide: activeRideData.activeRide };
           await persistSession(saved.token, restored, true);
           if (active) {
             setSession(restored);
@@ -72,7 +76,7 @@ export default function App() {
             return;
           }
           if (active) {
-            setSession(saved.session);
+            setSession({ ...saved.session, activeRide: null });
             setScreen('Home');
             Alert.alert('Modo offline', `Não foi possível validar a sessão com a API: ${error.message}`);
           }
@@ -90,6 +94,37 @@ export default function App() {
       setCacheFallbackHandler(null);
     };
   }, []);
+  useEffect(() => {
+    setSheetRide(session.activeRide);
+  }, [session.activeRide]);
+  useEffect(() => {
+    if (!session.user?.userId) return undefined;
+    let active = true;
+    let requestPending = false;
+    async function refreshActiveRide() {
+      if (requestPending) return;
+      requestPending = true;
+      try {
+        const { data } = await api.getLive('/corridas/ativa');
+        if (active) {
+          setSheetRide(data.activeRide);
+          if (data.activeRide) {
+            setSession((current) => ({ ...current, activeRide: data.activeRide }));
+          }
+        }
+      } catch (_error) {
+        // Mantém a última corrida conhecida se a API estiver temporariamente indisponível.
+      } finally {
+        requestPending = false;
+      }
+    }
+    refreshActiveRide();
+    const timer = setInterval(refreshActiveRide, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [session.user?.userId]);
   useEffect(() => {
     if (!session.user?.userId) return undefined;
     let active = true;
@@ -128,6 +163,7 @@ export default function App() {
     }
     setAuthToken(null);
     setSession({ user: null, motorista: null, activeRide: null });
+    setSheetRide(null);
     setOnline(false);
     setScreen('Login');
     if (logoutError) {
@@ -142,7 +178,10 @@ export default function App() {
         {restoring ? (
           <View style={styles.loading}><ActivityIndicator color="#087a50" /><Text>Verificando sessão…</Text></View>
         ) : (
-          <Screen go={setScreen} session={session} setSession={setSession} online={online} setOnline={setOnline} onLogout={logout} />
+          <View style={styles.screenContainer}>
+            <Screen go={setScreen} session={session} setSession={setSession} online={online} setOnline={setOnline} onLogout={logout} />
+            <ActiveRideSheet activeRide={sheetRide} go={setScreen} />
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -153,4 +192,5 @@ const styles = StyleSheet.create({
   app: { flex: 1, backgroundColor: '#eaf0ed', alignItems: 'center' },
   shell: { flex: 1, width: '100%', maxWidth: 900, backgroundColor: '#f7f8f7' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  screenContainer: { flex: 1, position: 'relative' },
 });

@@ -19,7 +19,7 @@
             <input id="senha" name="senha" type="password" autocomplete="current-password" required>
             <div style="margin-top:20px"><button class="button" type="submit" style="width:100%">Entrar</button></div>
         </form>
-        <p class="muted" style="margin-top:20px">Ainda não tem acesso? <a href="{{ route('admin.register') }}">Cadastre-se como Operador</a>.</p>
+        <p class="muted" style="margin-top:20px">O acesso administrativo é criado por um administrador Master.</p>
     </section>
 </main>
 @endsection

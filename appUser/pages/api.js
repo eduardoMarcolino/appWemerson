@@ -177,4 +177,8 @@ export const api = {
       return { data: JSON.parse(cachedValue), status: 200, cached: true };
     }
   },
+  getLive: async (path) => {
+    const response = await client.get(path);
+    return { data: response.data, status: response.status };
+  },
 };

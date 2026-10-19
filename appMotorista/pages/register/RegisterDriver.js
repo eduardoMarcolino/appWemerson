@@ -58,6 +58,7 @@ export default function RegisterDriver({ go, setSession }) {
       const payload = {
         ...form,
         cpf: form.cpf.replace(/\D/g, ''),
+        cnh: form.cnh.replace(/\D/g, ''),
         numeroTelefone: form.numeroTelefone.replace(/\D/g, ''),
         anoFabricacao: form.anoFabricacao ? Number(form.anoFabricacao) : null,
         anoModelo: form.anoModelo ? Number(form.anoModelo) : null,
@@ -98,7 +99,7 @@ export default function RegisterDriver({ go, setSession }) {
       <Field label="Cidade" placeholder="Cidade" value={form.cidade} onChangeText={update('cidade')} />
       <Field label="Estado (UF)" placeholder="Ex.: SP" value={form.estado} onChangeText={update('estado')} />
       <Text style={s.h2}>CNH e veículo</Text>
-      <Field label="Número da CNH" placeholder="Número da CNH" value={form.cnh} onChangeText={update('cnh')} />
+      <Field label="Número da CNH (11 dígitos)" placeholder="Somente números" value={form.cnh} onChangeText={(value) => update('cnh')(value.replace(/\D/g, '').slice(0, 11))} keyboardType="number-pad" />
       <Field label="Validade da CNH" placeholder="AAAA-MM-DD" value={form.validadeCNH} onChangeText={update('validadeCNH')} />
       <Field label="Marca do veículo" placeholder="Marca" value={form.marca} onChangeText={update('marca')} />
       <Field label="Modelo do veículo" placeholder="Modelo" value={form.modelo} onChangeText={update('modelo')} />
@@ -125,7 +126,7 @@ export default function RegisterDriver({ go, setSession }) {
       <Button onPress={register} disabled={loading || catalogLoading || !form.categoria}>
         {loading ? 'Cadastrando…' : catalogLoading ? 'Carregando…' : 'Criar conta de motorista'}
       </Button>
-      <Text style={s.muted}>Em modo local de testes, a conta é aprovada automaticamente. Fora dele, depende de aprovação administrativa.</Text>
+      <Text style={s.muted}>Seu cadastro ficará pendente até um administrador conferir sua CNH e os documentos do veículo. Você poderá entrar no app, mas só receberá corridas depois da aprovação.</Text>
     </Page>
   );
 }

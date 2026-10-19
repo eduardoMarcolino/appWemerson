@@ -11,10 +11,15 @@ Route::get('/', function () {
 });
 
 Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.login');
-Route::get('/admin/cadastro', [AdminAuthController::class, 'createRegistration'])->name('admin.register');
-Route::post('/admin/cadastro', [AdminAuthController::class, 'register'])
-    ->middleware('throttle:3,1')
-    ->name('admin.register.store');
+Route::prefix('admin')->name('admin.')->middleware([
+    EnsureAdministrator::class,
+    EnsureMasterAdministrator::class,
+])->group(function (): void {
+    Route::get('/cadastro', [AdminAuthController::class, 'createRegistration'])->name('register');
+    Route::post('/cadastro', [AdminAuthController::class, 'register'])
+        ->middleware('throttle:3,1')
+        ->name('register.store');
+});
 Route::post('/admin/login', [AdminAuthController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('admin.login.store');

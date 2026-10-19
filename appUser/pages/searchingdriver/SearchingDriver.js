@@ -15,6 +15,21 @@ Notifications.setNotificationHandler({
   }),
 });
 
+function hasRideViewChanged(previous, next) {
+  if (!previous || !next) return previous !== next;
+
+  return previous.corrida?.corridaId !== next.corrida?.corridaId
+    || previous.corrida?.status !== next.corrida?.status
+    || previous.corrida?.origem !== next.corrida?.origem
+    || previous.corrida?.destino !== next.corrida?.destino
+    || previous.localizacao?.latitude !== next.localizacao?.latitude
+    || previous.localizacao?.longitude !== next.localizacao?.longitude
+    || previous.motorista?.user?.nome !== next.motorista?.user?.nome
+    || previous.motorista?.veiculos?.[0]?.marca !== next.motorista?.veiculos?.[0]?.marca
+    || previous.motorista?.veiculos?.[0]?.modelo !== next.motorista?.veiculos?.[0]?.modelo
+    || previous.motorista?.veiculos?.[0]?.placa !== next.motorista?.veiculos?.[0]?.placa
+    || previous.agendamento?.dataHora !== next.agendamento?.dataHora;
+}
 export default function SearchingDriver({ go, session, setSession }) {
   const [error, setError] = useState('');
   const notifiedStatus = useRef(session.activeRide?.corrida?.status);
@@ -30,11 +45,17 @@ export default function SearchingDriver({ go, session, setSession }) {
     }
 
     let mounted = true;
+    let refreshPending = false;
     async function refreshRide() {
+      if (refreshPending) return;
+      refreshPending = true;
       try {
         const { data } = await api.get(`/corridas/${rideId}`);
         if (!mounted) return;
-        setSession((current) => ({ ...current, activeRide: data }));
+        setSession((current) => {
+          if (!hasRideViewChanged(current.activeRide, data)) return current;
+          return { ...current, activeRide: data };
+        });
         const status = data.corrida.status;
         if (status !== notifiedStatus.current && ['Aceita', 'MotoristaChegando', 'Finalizada', 'Cancelada'].includes(status)) {
           notifiedStatus.current = status;
@@ -49,6 +70,8 @@ export default function SearchingDriver({ go, session, setSession }) {
         if (data.corrida.status === 'Cancelada') setError('Esta corrida foi cancelada.');
       } catch (requestError) {
         if (mounted) setError(requestError.message);
+      } finally {
+        refreshPending = false;
       }
     }
 

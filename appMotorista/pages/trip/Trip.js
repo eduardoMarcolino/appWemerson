@@ -14,8 +14,11 @@ export default function Trip({ go, session, setSession }) {
   useEffect(() => {
     if (!rideId || ride?.status !== 'EmAndamento') return undefined;
     let active = true;
+    let locationRequestPending = false;
 
     async function updateLocation() {
+      if (locationRequestPending) return;
+      locationRequestPending = true;
       try {
         let permission = await Location.getForegroundPermissionsAsync();
         if (!permission.granted) {
@@ -40,11 +43,13 @@ export default function Trip({ go, session, setSession }) {
         }
       } catch (locationError) {
         if (active) setError(locationError.message);
+      } finally {
+        locationRequestPending = false;
       }
     }
 
     updateLocation();
-    const timer = setInterval(updateLocation, 10000);
+    const timer = setInterval(updateLocation, 5000);
     return () => {
       active = false;
       clearInterval(timer);

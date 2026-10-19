@@ -4,18 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\admModel;
 use App\Models\CorridaModel;
-use App\Models\EnderecoModel;
 use App\Models\EventoModel;
 use App\Models\MotoristaModel;
 use App\Models\PassageiroModel;
-use App\Models\TelModel;
 use App\Models\UserModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -60,7 +58,8 @@ class AdminController extends Controller
 
     public function editAccount(int $userId): View
     {
-        $user = $this->findCustomerAccount($userId);
+        $user = UserModel::with(['passageiro', 'motorista.veiculos'])->findOrFail($userId);
+        abort_unless($user->passageiro || $user->motorista, Response::HTTP_NOT_FOUND);
 
         return view('admin.accounts.edit', compact('user'));
     }
@@ -68,6 +67,16 @@ class AdminController extends Controller
     public function updateAccount(Request $request, int $userId): RedirectResponse
     {
         $user = $this->findCustomerAccount($userId);
+        if (
+            $user->motorista
+            && $request->input('statusMotorista') === 'Aprovado'
+            && $user->motorista->validadeCNH < now()->toDateString()
+        ) {
+            throw ValidationException::withMessages([
+                'statusMotorista' => 'Não é possível aprovar um motorista com a CNH vencida.',
+            ]);
+        }
+
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:3', 'max:100'],
             'email' => ['required', 'email', 'max:150', Rule::unique('tbUser', 'email')->ignore($user->userId, 'userId')],
@@ -77,6 +86,14 @@ class AdminController extends Controller
                 Rule::requiredIf($user->motorista !== null),
                 'nullable',
                 Rule::in(['Pendente', 'Aprovado', 'Bloqueado']),
+            ],
+            'confirmacaoDocumentos' => [
+                Rule::requiredIf(
+                    $user->motorista !== null
+                    && $user->motorista->statusMotorista !== 'Aprovado'
+                    && $request->input('statusMotorista') === 'Aprovado'
+                ),
+                'accepted',
             ],
         ]);
 
@@ -175,58 +192,4 @@ class AdminController extends Controller
         return $user->administrador;
     }
 
-    public function cadastro(Request $request)
-    {
-        $adm = new admModel;
-        $user = new UserModel;
-        $endereco = new EnderecoModel;
-        $telefone = new TelModel;
-
-        try {
-            $user->nome = $request->input('nome');
-            $user->email = $request->input('email');
-            $user->senha = Hash::make($request->input('senha'));
-            $user->cpf = $request->input('cpf');
-            $user->fotoPerfil = $request->input('fotoPerfil');
-            $user->dataCadastro = now();
-            $user->statusConta = 'Ativa';
-
-            $user->save();
-
-            $adm->userId = $user->userId;
-            $adm->nivelAcesso = 'Master';
-
-            $adm->save();
-
-            $telefone->userId = $user->userId;
-            $telefone->numeroTelefone = $request->input('numeroTelefone');
-
-            $telefone->save();
-
-            $endereco->userId = $user->userId;
-            $endereco->logradouro = $request->input('logradouro');
-            $endereco->numero = $request->input('numero');
-            $endereco->bairro = $request->input('bairro');
-            $endereco->cidade = $request->input('cidade');
-            $endereco->estado = $request->input('estado');
-            $endereco->cep = $request->input('cep');
-            $endereco->complemento = $request->input('complemento');
-
-            $endereco->save();
-
-            return response()->json([
-                'message' => 'Administrador cadastrado com sucesso!',
-                'adm' => $adm,
-                'endereco' => $endereco,
-                'telefone' => $telefone,
-            ], 201);
-
-        } catch (\Exception $e) {
-            report($e);
-
-            return response()->json([
-                'message' => 'Não foi possível cadastrar o administrador. Verifique os dados e tente novamente.',
-            ], 500);
-        }
-    }
 }

@@ -8,6 +8,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use App\Http\Middleware\LogApiRequest;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->api(append: [LogApiRequest::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $exception, Request $request) {

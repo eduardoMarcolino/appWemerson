@@ -124,7 +124,7 @@ export default function Account({ go, session, setSession, onLogout }) {
       <Button onPress={save} disabled={loading}>{loading ? 'Salvando…' : 'Salvar alterações'}</Button>
       <Card style={{ borderColor: '#f0caca', borderWidth: 1 }}>
         <Text style={{ color: '#b42318', fontWeight: '700' }}>Desativar conta</Text>
-        <Text style={s.muted}>A conta será desativada e você será desconectado. Essa ação não pode ser desfeita pelo aplicativo.</Text>
+        <Text style={s.muted}>A conta será desativada, você será desconectado e sua foto de perfil será removida. Os dados associados ao histórico das corridas serão mantidos. Para reativar a conta, fale com o suporte.</Text>
         {!confirmDeactivate ? (
           <Button light onPress={() => setConfirmDeactivate(true)}>Quero desativar minha conta</Button>
         ) : (

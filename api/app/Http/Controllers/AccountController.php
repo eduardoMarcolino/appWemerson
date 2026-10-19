@@ -134,15 +134,24 @@ class AccountController extends Controller
         $user = $request->user()->load('passageiro');
         abort_unless($user->passageiro || $user->motorista, 403);
         $this->assertCurrentPassword($user, $data['senhaAtual']);
+        $previousPhoto = $user->fotoPerfil;
+        $photoDirectory = 'profile-photos/'.$user->userId;
 
         DB::transaction(function () use ($user): void {
             $user->statusConta = 'Inativa';
+            $user->fotoPerfil = null;
             $user->save();
             $user->passageiro?->update(['status' => 'Inativo']);
             $user->tokens()->delete();
         });
 
-        return response()->json(['message' => 'Conta desativada.']);
+        if (is_string($previousPhoto) && dirname($previousPhoto) === $photoDirectory) {
+            Storage::disk('public')->delete($previousPhoto);
+        }
+
+        return response()->json([
+            'message' => 'Conta desativada. A foto de perfil foi removida; registros associados às corridas foram mantidos.',
+        ]);
     }
 
     private function assertCurrentPassword(UserModel $user, string $password): void

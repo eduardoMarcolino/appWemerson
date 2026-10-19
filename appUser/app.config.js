@@ -12,6 +12,7 @@ module.exports = ({ config }) => {
     ...(googleMapsApiKey
       ? [['react-native-maps', { androidGoogleMapsApiKey: googleMapsApiKey }]]
       : []),
+    'expo-location',
   ];
 
   return withAndroidManifest({ ...config, plugins }, (modConfig) => {

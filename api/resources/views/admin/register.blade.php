@@ -8,7 +8,7 @@
     <section class="login-card">
         <p class="muted">INTERIORGO · CADASTRO ADMINISTRATIVO</p>
         <h1>Criar conta de Operador</h1>
-        <p class="muted">O cadastro público cria apenas contas Operador. O acesso Master é concedido separadamente.</p>
+        <p class="muted">Somente um administrador Master autenticado pode criar contas Operador.</p>
         @if ($errors->any())<div class="alert errors">{{ $errors->first() }}</div>@endif
         <form method="POST" action="{{ route('admin.register.store') }}">
             @csrf

@@ -75,7 +75,23 @@ it('allows only Master administrators to manage customer accounts', function () 
     $this->get('/admin/contas')->assertOk()->assertSee('Contas');
 });
 
-it('registers public administrators as Operators only and allows them to sign in', function () {
+it('allows only a Master to register Operators', function () {
+    $this->get('/admin/cadastro')->assertRedirect('/admin/login');
+    $this->post('/admin/cadastro', [
+        'nome' => 'Operadora Nova',
+        'email' => 'nova.operadora@example.test',
+        'cpf' => '11122233344',
+        'senha' => 'senha-operadora-segura',
+        'senha_confirmation' => 'senha-operadora-segura',
+    ])->assertRedirect('/admin/login');
+
+    expect(UserModel::where('email', 'nova.operadora@example.test')->exists())->toBeFalse();
+
+    createPanelAdministrator();
+    $this->post('/admin/login', [
+        'email' => 'master@example.test',
+        'senha' => 'senha-master-segura',
+    ])->assertRedirect('/admin');
     $this->get('/admin/cadastro')->assertOk()->assertSee('Criar conta de Operador');
     $this->post('/admin/cadastro', [
         'nome' => 'Operadora Nova',
@@ -93,7 +109,33 @@ it('registers public administrators as Operators only and allows them to sign in
         'senha' => 'senha-operadora-segura',
     ])->assertRedirect('/admin');
     $this->get('/admin')->assertOk()->assertSee('Operador');
+    $this->get('/admin/cadastro')->assertForbidden();
     $this->get('/admin/contas')->assertForbidden();
+});
+
+it('does not expose the legacy API endpoint that created Master administrators', function () {
+    $this->postJson('/api/admin/insert', [
+        'nome' => 'Master Não Autorizado',
+        'email' => 'ataque@example.test',
+        'senha' => 'senha-qualquer',
+        'cpf' => '12345678901',
+    ])->assertNotFound();
+
+    expect(UserModel::where('email', 'ataque@example.test')->exists())->toBeFalse();
+});
+
+it('limits passenger API login attempts', function () {
+    for ($attempt = 0; $attempt < 5; $attempt++) {
+        $this->postJson('/api/loginPassageiro', [
+            'email' => 'nao-existe@example.test',
+            'senha' => 'senha-invalida',
+        ])->assertUnprocessable();
+    }
+
+    $this->postJson('/api/loginPassageiro', [
+        'email' => 'nao-existe@example.test',
+        'senha' => 'senha-invalida',
+    ])->assertTooManyRequests();
 });
 
 it('lets a Master update and deactivate a customer account and revokes its tokens', function () {
@@ -108,7 +150,7 @@ it('lets a Master update and deactivate a customer account and revokes its token
     ]);
     $driver = MotoristaModel::create([
         'userId' => $user->userId,
-        'cnh' => 'CNH12345',
+        'cnh' => '12345678901',
         'validadeCNH' => now()->addYear()->toDateString(),
         'avaliacaoMedia' => 0,
         'statusMotorista' => 'Pendente',
@@ -126,6 +168,7 @@ it('lets a Master update and deactivate a customer account and revokes its token
         'cpf' => '98798798798',
         'statusConta' => 'Inativa',
         'statusMotorista' => 'Aprovado',
+        'confirmacaoDocumentos' => 'on',
     ])->assertRedirect("/admin/contas/{$user->userId}/editar");
     $this->get("/admin/contas/{$user->userId}/editar")->assertOk()->assertSee('Motorista Atualizado');
 
@@ -133,6 +176,40 @@ it('lets a Master update and deactivate a customer account and revokes its token
         ->and($user->fresh()->statusConta)->toBe('Inativa')
         ->and($driver->fresh()->statusMotorista)->toBe('Aprovado')
         ->and($user->tokens()->count())->toBe(0);
+});
+
+it('requires an administrator to confirm driver documents before approval', function () {
+    createPanelAdministrator();
+    $user = UserModel::create([
+        'nome' => 'Motorista Pendente',
+        'email' => 'pendente@example.test',
+        'senha' => Hash::make('senha-driver'),
+        'cpf' => '98798798798',
+        'dataCadastro' => now(),
+        'statusConta' => 'Ativa',
+    ]);
+    $driver = MotoristaModel::create([
+        'userId' => $user->userId,
+        'cnh' => '12345678901',
+        'validadeCNH' => now()->addYear()->toDateString(),
+        'avaliacaoMedia' => 0,
+        'statusMotorista' => 'Pendente',
+    ]);
+
+    $this->post('/admin/login', [
+        'email' => 'master@example.test',
+        'senha' => 'senha-master-segura',
+    ])->assertRedirect('/admin');
+
+    $this->put("/admin/contas/{$user->userId}", [
+        'nome' => $user->nome,
+        'email' => $user->email,
+        'cpf' => $user->cpf,
+        'statusConta' => 'Ativa',
+        'statusMotorista' => 'Aprovado',
+    ])->assertSessionHasErrors('confirmacaoDocumentos');
+
+    expect($driver->fresh()->statusMotorista)->toBe('Pendente');
 });
 
 it('lets a Master create, edit, and deactivate events', function () {

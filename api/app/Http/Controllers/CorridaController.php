@@ -44,6 +44,42 @@ class CorridaController extends Controller
         return response()->json($rides);
     }
 
+    public function ativa(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->statusConta === 'Ativa', 403, 'Esta conta não está ativa.');
+
+        $passenger = PassageiroModel::where('userId', $user->userId)
+            ->where('status', 'Ativo')
+            ->first();
+
+        if ($passenger) {
+            $ride = CorridaModel::where('passageiroId', $passenger->passageiroId)
+                ->whereIn('status', ['Solicitada', 'Aceita', 'MotoristaChegando', 'EmAndamento'])
+                ->orderByDesc('dataSolicitacao')
+                ->orderByDesc('corridaId')
+                ->first();
+        } else {
+            $driver = MotoristaModel::where('userId', $user->userId)->first();
+
+            if (! $driver) {
+                abort(403, 'Esta conta não pertence a um passageiro ou motorista.');
+            }
+
+            $ride = $driver->statusMotorista === 'Aprovado'
+                ? CorridaModel::where('motoristaId', $driver->motoristaId)
+                    ->whereIn('status', ['Aceita', 'MotoristaChegando', 'EmAndamento'])
+                    ->orderByDesc('dataSolicitacao')
+                    ->orderByDesc('corridaId')
+                    ->first()
+                : null;
+        }
+
+        return response()->json([
+            'activeRide' => $ride ? $this->ridePayload($ride) : null,
+        ]);
+    }
+
     public function ofertas(Request $request): JsonResponse
     {
         $driver = $this->approvedDriver($request);

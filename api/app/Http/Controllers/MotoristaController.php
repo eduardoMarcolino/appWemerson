@@ -38,7 +38,7 @@ class MotoristaController extends Controller
             'estado' => ['nullable', 'string', 'size:2'],
             'cep' => ['nullable', 'string', 'max:9'],
             'complemento' => ['nullable', 'string', 'max:100'],
-            'cnh' => ['required', 'string', 'max:20'],
+            'cnh' => ['required', 'digits:11', Rule::unique('tbMotorista', 'cnh')],
             'validadeCNH' => ['required', 'date', 'after:today'],
             'marca' => ['required', 'string', 'max:50'],
             'modelo' => ['required', 'string', 'max:50'],
@@ -65,7 +65,7 @@ class MotoristaController extends Controller
                 'cnh' => $data['cnh'],
                 'validadeCNH' => $data['validadeCNH'],
                 'avaliacaoMedia' => 0,
-                'statusMotorista' => app()->environment('local', 'testing') ? 'Aprovado' : 'Pendente',
+                'statusMotorista' => app()->environment('testing') ? 'Aprovado' : 'Pendente',
             ]);
 
             VeiculoModel::create([

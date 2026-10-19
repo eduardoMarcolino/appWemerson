@@ -18,6 +18,7 @@ import Category from './pages/category/Category';
 import SearchingDriver from './pages/searchingdriver/SearchingDriver';
 import Payment from './pages/payment/Payment';
 import RateDriver from './pages/ratedriver/RateDriver';
+import ActiveRideSheet from './pages/components/ActiveRideSheet';
 import { api, clearStoredSession, loadRememberedSession, persistSession, setAuthToken, setAuthenticationExpiredHandler, setCacheFallbackHandler } from './pages/api';
 import { getThemeColors, setColorScheme } from './pages/ui';
 
@@ -28,6 +29,7 @@ export default function App() {
   const theme = getThemeColors(colorScheme);
   const [screen, setScreen] = useState('Login');
   const [restoring, setRestoring] = useState(true);
+  const [sheetRide, setSheetRide] = useState(null);
   const validationWarningShown = useRef(false);
   const [session, setSession] = useState({
     user: null,
@@ -56,6 +58,7 @@ export default function App() {
         .then(() => {
           setAuthToken(null);
           setSession((current) => ({ ...current, user: null, activeRide: null }));
+          setSheetRide(null);
           setScreen('Login');
           if (active) Alert.alert('Sessão encerrada', 'Sua conta não está mais disponível.');
         })
@@ -71,7 +74,8 @@ export default function App() {
 
         try {
           const { data } = await api.get('/session');
-          const restored = { ...data, activeRide: null };
+          const { data: activeRideData } = await api.getLive('/corridas/ativa');
+          const restored = { ...data, activeRide: activeRideData.activeRide };
           await persistSession(saved.token, restored, true);
           if (active) {
             setSession((current) => ({ ...current, ...restored }));
@@ -84,7 +88,7 @@ export default function App() {
             return;
           }
           if (active) {
-            setSession((current) => ({ ...current, ...saved.session }));
+            setSession((current) => ({ ...current, ...saved.session, activeRide: null }));
             setScreen('Home');
             Alert.alert('Modo offline', `Não foi possível validar a sessão com a API: ${error.message}`);
           }
@@ -102,6 +106,37 @@ export default function App() {
       setCacheFallbackHandler(null);
     };
   }, []);
+  useEffect(() => {
+    setSheetRide(session.activeRide);
+  }, [session.activeRide]);
+  useEffect(() => {
+    if (!session.user?.userId || screen === 'SearchingDriver') return undefined;
+    let active = true;
+    let requestPending = false;
+    async function refreshActiveRide() {
+      if (requestPending) return;
+      requestPending = true;
+      try {
+        const { data } = await api.getLive('/corridas/ativa');
+        if (active) {
+          setSheetRide(data.activeRide);
+          if (data.activeRide) {
+            setSession((current) => ({ ...current, activeRide: data.activeRide }));
+          }
+        }
+      } catch (_error) {
+        // Mantém a última corrida conhecida se a API estiver temporariamente indisponível.
+      } finally {
+        requestPending = false;
+      }
+    }
+    refreshActiveRide();
+    const timer = setInterval(refreshActiveRide, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [screen, session.user?.userId]);
   useEffect(() => {
     if (!session.user?.userId) return undefined;
     let active = true;
@@ -140,6 +175,7 @@ export default function App() {
     }
     setAuthToken(null);
     setSession((current) => ({ ...current, user: null, activeRide: null }));
+    setSheetRide(null);
     setScreen('Login');
     if (logoutError) {
       Alert.alert('Sessão local encerrada', `Não foi possível revogar o token na API: ${logoutError.message}`);
@@ -153,7 +189,10 @@ export default function App() {
         {restoring ? (
           <View style={styles.loading}><ActivityIndicator color="#087a50" /><Text>Verificando sessão…</Text></View>
         ) : (
-          <Screen go={setScreen} session={session} setSession={setSession} updateDraft={updateDraft} onLogout={logout} />
+          <View style={styles.screenContainer}>
+            <Screen go={setScreen} session={session} setSession={setSession} updateDraft={updateDraft} onLogout={logout} />
+            <ActiveRideSheet activeRide={sheetRide} go={setScreen} />
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -163,4 +202,5 @@ const styles = StyleSheet.create({
   app: { flex: 1, backgroundColor: '#eaf0ed', alignItems: 'center' },
   shell: { flex: 1, width: '100%', maxWidth: 900, backgroundColor: '#f7f8f7' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  screenContainer: { flex: 1, position: 'relative' },
 });

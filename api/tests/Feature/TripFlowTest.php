@@ -42,7 +42,7 @@ function driverCredentials(): array
         'logradouro' => 'Rua do Motorista',
         'cidade' => 'São Paulo',
         'estado' => 'SP',
-        'cnh' => 'CNH123456',
+        'cnh' => '12345678901',
         'validadeCNH' => now()->addYear()->toDateString(),
         'marca' => 'Chevrolet',
         'modelo' => 'Onix',
@@ -98,8 +98,15 @@ it('supports an authenticated passenger and driver ride from request through pay
     ], $passengerHeaders)->assertCreated();
     $rideId = $request->json('corrida.corrida.corridaId');
     expect($request->json('corrida.corrida.distanciaKm'))->toBeGreaterThan(0);
+    $this->getJson('/api/corridas/ativa', $passengerHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide.corrida.corridaId', $rideId)
+        ->assertJsonPath('activeRide.corrida.status', 'Solicitada');
 
     resetApiAuth();
+    $this->getJson('/api/corridas/ativa', $driverHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide', null);
     $this->getJson('/api/motorista/corridas/ofertas', $driverHeaders)
         ->assertOk()
         ->assertJsonPath('0.corrida.corridaId', $rideId);
@@ -107,6 +114,15 @@ it('supports an authenticated passenger and driver ride from request through pay
     $this->postJson("/api/corridas/{$rideId}/aceitar", [], $driverHeaders)
         ->assertOk()
         ->assertJsonPath('corrida.corrida.status', 'Aceita');
+    resetApiAuth();
+    $this->getJson('/api/corridas/ativa', $passengerHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide.corrida.status', 'Aceita');
+    resetApiAuth();
+    $this->getJson('/api/corridas/ativa', $driverHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide.corrida.status', 'Aceita');
+    resetApiAuth();
     $this->postJson("/api/corridas/{$rideId}/aceitar", [], $driverHeaders)
         ->assertStatus(409);
 
@@ -122,6 +138,14 @@ it('supports an authenticated passenger and driver ride from request through pay
     ], $driverHeaders)->assertCreated();
 
     resetApiAuth();
+    $this->getJson('/api/corridas/ativa', $passengerHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide.corrida.status', 'EmAndamento');
+    resetApiAuth();
+    $this->getJson('/api/corridas/ativa', $driverHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide.corrida.status', 'EmAndamento');
+    resetApiAuth();
     $this->getJson("/api/corridas/{$rideId}", $passengerHeaders)
         ->assertOk()
         ->assertJsonPath('localizacao.latitude', -23.555);
@@ -130,6 +154,14 @@ it('supports an authenticated passenger and driver ride from request through pay
     $this->postJson("/api/corridas/{$rideId}/finalizar", [], $driverHeaders)
         ->assertOk()
         ->assertJsonPath('corrida.corrida.status', 'Finalizada');
+    resetApiAuth();
+    $this->getJson('/api/corridas/ativa', $passengerHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide', null);
+    resetApiAuth();
+    $this->getJson('/api/corridas/ativa', $driverHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide', null);
     resetApiAuth();
     $this->postJson("/api/corridas/{$rideId}/pagamento", [
         'formaPagamento' => 'Pix',
@@ -156,10 +188,29 @@ it('supports an authenticated passenger and driver ride from request through pay
         ->assertOk()
         ->assertJsonPath('pagamentos.0.corrida.corridaId', $rideId)
         ->assertJsonPath('pagamentos.0.pagamento.statusPagamento', 'Pago');
+
+    resetApiAuth();
+    $secondRide = $this->postJson('/api/corridas', [
+        'origem' => 'Praça da Matriz',
+        'latitudeOrigem' => -23.5505,
+        'longitudeOrigem' => -46.6333,
+        'destino' => 'Rodoviária',
+        'latitudeDestino' => -23.535,
+        'longitudeDestino' => -46.6312,
+        'categoria' => 'Economico',
+    ], $passengerHeaders)->assertCreated();
+    $cancelledRideId = $secondRide->json('corrida.corrida.corridaId');
+    $this->postJson("/api/corridas/{$cancelledRideId}/cancelar", [], $passengerHeaders)
+        ->assertOk()
+        ->assertJsonPath('corrida.corrida.status', 'Cancelada');
+    $this->getJson('/api/corridas/ativa', $passengerHeaders)
+        ->assertOk()
+        ->assertJsonPath('activeRide', null);
 });
 
 it('rejects unauthenticated access and invalid trip input', function () {
     $this->getJson('/api/motorista/corridas/ofertas')->assertUnauthorized();
+    $this->getJson('/api/corridas/ativa')->assertUnauthorized();
     resetApiAuth();
 
     $passenger = $this->postJson('/api/passageiro/insert', passengerCredentials())->assertCreated();
@@ -174,6 +225,28 @@ it('rejects unauthenticated access and invalid trip input', function () {
         'longitudeDestino' => -46.6559,
         'categoria' => 'Economico',
     ], $headers)->assertUnprocessable();
+});
+
+it('requires an eleven digit CNH and keeps local driver registrations pending review', function () {
+    $this->app->detectEnvironment(fn (): string => 'local');
+    $invalidDriver = driverCredentials();
+    $invalidDriver['cnh'] = 'CNH123456';
+
+    $this->postJson('/api/motorista/insert', $invalidDriver)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('cnh');
+
+    $validDriver = $this->postJson('/api/motorista/insert', driverCredentials())->assertCreated();
+
+    $duplicateDriver = driverCredentials();
+    $duplicateDriver['email'] = 'outro.motorista@example.test';
+    $duplicateDriver['cpf'] = '11122233344';
+    $duplicateDriver['placa'] = 'DEF4G56';
+    $this->postJson('/api/motorista/insert', $duplicateDriver)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('cnh');
+
+    expect($validDriver->json('motorista.statusMotorista'))->toBe('Pendente');
 });
 
 it('restores only active accounts and serves user data for the app cache', function () {
@@ -281,6 +354,28 @@ it('lets a passenger edit their account and deactivate it with password confirma
         'email' => 'ana.editada@example.test',
         'senha' => 'senha-nova-segura',
     ])->assertUnprocessable();
+});
+
+it('removes a passenger profile photo when the account is deactivated', function () {
+    Storage::fake('public');
+
+    $registration = $this->postJson('/api/passageiro/insert', passengerCredentials())->assertCreated();
+    $headers = ['Authorization' => 'Bearer '.$registration->json('token')];
+    $this->post('/api/account/photo', [
+        'foto' => UploadedFile::fake()->create('perfil.jpg', 50, 'image/jpeg'),
+    ], $headers)->assertOk();
+
+    $user = UserModel::findOrFail($registration->json('user.userId'));
+    $photoPath = $user->fotoPerfil;
+    Storage::disk('public')->assertExists($photoPath);
+
+    $this->deleteJson('/api/account', ['senhaAtual' => passengerCredentials()['senha']], $headers)
+        ->assertOk()
+        ->assertJsonPath('message', 'Conta desativada. A foto de perfil foi removida; registros associados às corridas foram mantidos.');
+
+    expect($user->fresh()->fotoPerfil)->toBeNull()
+        ->and($user->fresh()->statusConta)->toBe('Inativa');
+    Storage::disk('public')->assertMissing($photoPath);
 });
 
 it('lets a driver update their profile and deactivate their own account', function () {

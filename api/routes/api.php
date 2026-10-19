@@ -5,17 +5,19 @@ use App\Http\Controllers\AppDataController;
 use App\Http\Controllers\CorridaController;
 use App\Http\Controllers\MotoristaController;
 use App\Http\Controllers\PassageiroController;
-use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SessionController;
 use App\Support\RideCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::post('admin/insert', [AdminController::class, 'cadastro']);
-Route::post('/passageiro/insert', [PassageiroController::class, 'cadastro']);
-Route::post('/loginPassageiro', [PassageiroController::class, 'login']);
-Route::post('/motorista/insert', [MotoristaController::class, 'cadastro']);
-Route::post('/loginMotorista', [MotoristaController::class, 'login']);
+Route::post('/passageiro/insert', [PassageiroController::class, 'cadastro'])
+    ->middleware('throttle:3,1');
+Route::post('/loginPassageiro', [PassageiroController::class, 'login'])
+    ->middleware('throttle:5,1');
+Route::post('/motorista/insert', [MotoristaController::class, 'cadastro'])
+    ->middleware('throttle:3,1');
+Route::post('/loginMotorista', [MotoristaController::class, 'login'])
+    ->middleware('throttle:5,1');
 Route::get('/catalogos', fn () => response()->json([
     'categorias' => RideCatalog::categories(),
     'formasPagamento' => RideCatalog::paymentMethods(),
@@ -44,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/motorista/corridas/agendadas', [CorridaController::class, 'agendadas']);
 
     Route::post('/corridas', [CorridaController::class, 'store']);
+    Route::get('/corridas/ativa', [CorridaController::class, 'ativa']);
     Route::get('/corridas/{corrida}', [CorridaController::class, 'show']);
     Route::post('/corridas/{corrida}/aceitar', [CorridaController::class, 'aceitar']);
     Route::post('/corridas/{corrida}/cheguei', [CorridaController::class, 'chegou']);
