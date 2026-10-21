@@ -15,7 +15,7 @@ function createPanelAdministrator(string $level = 'Master'): UserModel
         'nome' => 'Admin de Teste',
         'email' => $level === 'Master' ? 'master@example.test' : 'operator@example.test',
         'senha' => Hash::make('senha-master-segura'),
-        'cpf' => $level === 'Master' ? '12312312312' : '32132132132',
+        'cpf' => $level === 'Master' ? '12312312387' : '32132132178',
         'dataCadastro' => now(),
         'statusConta' => 'Ativa',
     ]);
@@ -80,7 +80,7 @@ it('allows only a Master to register Operators', function () {
     $this->post('/admin/cadastro', [
         'nome' => 'Operadora Nova',
         'email' => 'nova.operadora@example.test',
-        'cpf' => '11122233344',
+        'cpf' => '11144477735',
         'senha' => 'senha-operadora-segura',
         'senha_confirmation' => 'senha-operadora-segura',
     ])->assertRedirect('/admin/login');
@@ -96,7 +96,7 @@ it('allows only a Master to register Operators', function () {
     $this->post('/admin/cadastro', [
         'nome' => 'Operadora Nova',
         'email' => 'nova.operadora@example.test',
-        'cpf' => '11122233344',
+        'cpf' => '11144477735',
         'senha' => 'senha-operadora-segura',
         'senha_confirmation' => 'senha-operadora-segura',
     ])->assertRedirect('/admin/login');
@@ -118,7 +118,7 @@ it('does not expose the legacy API endpoint that created Master administrators',
         'nome' => 'Master Não Autorizado',
         'email' => 'ataque@example.test',
         'senha' => 'senha-qualquer',
-        'cpf' => '12345678901',
+        'cpf' => '52998224725',
     ])->assertNotFound();
 
     expect(UserModel::where('email', 'ataque@example.test')->exists())->toBeFalse();
@@ -144,13 +144,13 @@ it('lets a Master update and deactivate a customer account and revokes its token
         'nome' => 'Motorista de Teste',
         'email' => 'driver@example.test',
         'senha' => Hash::make('senha-driver'),
-        'cpf' => '98798798798',
+        'cpf' => '98798798723',
         'dataCadastro' => now(),
         'statusConta' => 'Ativa',
     ]);
     $driver = MotoristaModel::create([
         'userId' => $user->userId,
-        'cnh' => '12345678901',
+        'cnh' => '12345678900',
         'validadeCNH' => now()->addYear()->toDateString(),
         'avaliacaoMedia' => 0,
         'statusMotorista' => 'Pendente',
@@ -165,7 +165,7 @@ it('lets a Master update and deactivate a customer account and revokes its token
     $this->put("/admin/contas/{$user->userId}", [
         'nome' => 'Motorista Atualizado',
         'email' => 'driver.updated@example.test',
-        'cpf' => '98798798798',
+        'cpf' => '98798798723',
         'statusConta' => 'Inativa',
         'statusMotorista' => 'Aprovado',
         'confirmacaoDocumentos' => 'on',
@@ -184,13 +184,13 @@ it('requires an administrator to confirm driver documents before approval', func
         'nome' => 'Motorista Pendente',
         'email' => 'pendente@example.test',
         'senha' => Hash::make('senha-driver'),
-        'cpf' => '98798798798',
+        'cpf' => '98798798723',
         'dataCadastro' => now(),
         'statusConta' => 'Ativa',
     ]);
     $driver = MotoristaModel::create([
         'userId' => $user->userId,
-        'cnh' => '12345678901',
+        'cnh' => '12345678900',
         'validadeCNH' => now()->addYear()->toDateString(),
         'avaliacaoMedia' => 0,
         'statusMotorista' => 'Pendente',

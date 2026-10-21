@@ -8,6 +8,8 @@ use App\Models\EventoModel;
 use App\Models\MotoristaModel;
 use App\Models\PassageiroModel;
 use App\Models\UserModel;
+use App\Rules\ValidCnh;
+use App\Rules\ValidCpf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,11 +78,20 @@ class AdminController extends Controller
                 'statusMotorista' => 'Não é possível aprovar um motorista com a CNH vencida.',
             ]);
         }
+        if (
+            $user->motorista
+            && $request->input('statusMotorista') === 'Aprovado'
+            && ! ValidCnh::passes($user->motorista->cnh)
+        ) {
+            throw ValidationException::withMessages([
+                'statusMotorista' => 'Não é possível aprovar um motorista com número de CNH inválido.',
+            ]);
+        }
 
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:3', 'max:100'],
             'email' => ['required', 'email', 'max:150', Rule::unique('tbUser', 'email')->ignore($user->userId, 'userId')],
-            'cpf' => ['required', 'digits:11', Rule::unique('tbUser', 'cpf')->ignore($user->userId, 'userId')],
+            'cpf' => ['required', 'digits:11', new ValidCpf, Rule::unique('tbUser', 'cpf')->ignore($user->userId, 'userId')],
             'statusConta' => ['required', Rule::in(['Ativa', 'Inativa', 'Bloqueada'])],
             'statusMotorista' => [
                 Rule::requiredIf($user->motorista !== null),
@@ -191,5 +202,4 @@ class AdminController extends Controller
 
         return $user->administrador;
     }
-
 }

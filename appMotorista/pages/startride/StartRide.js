@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import RideMap from '../components/RideMap';
 import { api } from '../api';
 import { Button, Card, Page, s } from '../ui';
+import RideCancellation from '../components/RideCancellation';
 
 export default function StartRide({ go, session, setSession }) {
   const [error, setError] = useState('');
@@ -58,6 +59,7 @@ export default function StartRide({ go, session, setSession }) {
               {loading ? 'Atualizando…' : 'Cheguei ao embarque'}
             </Button>
           )}
+          <RideCancellation rideId={rideId} onCancelled={(cancelledRide) => { setSession((current) => ({ ...current, activeRide: cancelledRide })); go('Home'); }} />
         </>
       ) : <Text style={s.muted}>Não há corrida ativa.</Text>}
     </Page>

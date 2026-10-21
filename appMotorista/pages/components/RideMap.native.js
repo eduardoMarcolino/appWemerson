@@ -7,6 +7,8 @@ import { s } from '../ui';
 
 const LOCATION_TIMEOUT_MS = 12000;
 const DRIVER_ZOOM_DELTA = 0.012;
+const MARKER_ANIMATION_MS = 4500;
+const MARKER_FRAME_MS = 50;
 
 function isValidCoordinate(latitude, longitude) {
   return Number.isFinite(latitude)
@@ -25,7 +27,34 @@ function getPositionWithTimeout() {
   ]).finally(() => clearTimeout(timeoutId));
 }
 
-export default function RideMap({ ride, location }) {
+function TrackingMarker({ coordinate, title, pinColor }) {
+  const [displayedCoordinate, setDisplayedCoordinate] = useState(coordinate);
+  const displayedCoordinateRef = useRef(coordinate);
+
+  useEffect(() => {
+    const start = displayedCoordinateRef.current;
+    const startedAt = Date.now();
+    let timerId;
+
+    function animate() {
+      const progress = Math.min((Date.now() - startedAt) / MARKER_ANIMATION_MS, 1);
+      const nextCoordinate = {
+        latitude: start.latitude + ((coordinate.latitude - start.latitude) * progress),
+        longitude: start.longitude + ((coordinate.longitude - start.longitude) * progress),
+      };
+      displayedCoordinateRef.current = nextCoordinate;
+      setDisplayedCoordinate(nextCoordinate);
+      if (progress < 1) timerId = setTimeout(animate, MARKER_FRAME_MS);
+    }
+
+    animate();
+    return () => clearTimeout(timerId);
+  }, [coordinate.latitude, coordinate.longitude]);
+
+  return <Marker coordinate={displayedCoordinate} title={title} pinColor={pinColor} />;
+}
+
+export default function RideMap({ ride, location, participantLocation }) {
   const { width } = useWindowDimensions();
   const mapRef = useRef(null);
   const focusedRideRef = useRef(null);
@@ -55,8 +84,15 @@ export default function RideMap({ ride, location }) {
   const serverLocation = hasDriverLocation
     ? { latitude: driverLatitude, longitude: driverLongitude }
     : null;
-  const currentLocation = deviceLocation || serverLocation;
+  const currentLocation = serverLocation || deviceLocation;
   const locationSource = deviceLocationSource || (serverLocation ? 'server' : null);
+  const passengerLatitude = Number(participantLocation?.latitude);
+  const passengerLongitude = Number(participantLocation?.longitude);
+  const hasPassengerLocation = Boolean(participantLocation)
+    && isValidCoordinate(passengerLatitude, passengerLongitude);
+  const passengerCoordinate = hasPassengerLocation
+    ? { latitude: passengerLatitude, longitude: passengerLongitude }
+    : null;
   const rideKey = String(ride?.corridaId ?? ride?.id ?? 'ride');
 
   useEffect(() => {
@@ -180,7 +216,8 @@ export default function RideMap({ ride, location }) {
       >
         <Marker coordinate={origin} title={ride?.origem || 'Embarque'} pinColor="green" />
         <Marker coordinate={destination} title={ride?.destino || 'Destino'} pinColor="red" />
-        {currentLocation ? <Marker coordinate={currentLocation} title="Sua localização" /> : null}
+        {currentLocation ? <TrackingMarker coordinate={currentLocation} title="Sua localização" /> : null}
+        {passengerCoordinate ? <TrackingMarker coordinate={passengerCoordinate} title="Passageiro" pinColor="orange" /> : null}
         <Polyline coordinates={[origin, destination]} strokeColor="#087a50" strokeWidth={4} />
       </MapView>
       {locationMessage ? (

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Pressable } from 'react-native';
 import { api } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
+import RideReportForm from '../components/RideReportForm';
 
 export default function RateDriver({ go, session }) {
   const [rating, setRating] = useState(5);
@@ -10,6 +11,7 @@ export default function RateDriver({ go, session }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [rated, setRated] = useState(false);
   const rideId = session.activeRide?.corrida?.corridaId;
   const driverName = session.activeRide?.motorista?.user?.nome || 'Motorista';
   const driverId = session.activeRide?.motorista?.motoristaId;
@@ -19,7 +21,7 @@ export default function RateDriver({ go, session }) {
     setError('');
     try {
       await api.post(`/corridas/${rideId}/avaliacoes`, { nota: rating, comentario: comment.trim() || null });
-      go('Home');
+      setRated(true);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -41,7 +43,7 @@ export default function RateDriver({ go, session }) {
   }
 
   return (
-    <Page title="Avaliar motorista" go={go} back="Payment">
+    <Page title="Avaliar motorista" go={go} back="SearchingDriver">
       <Card>
         <Text style={{ fontWeight: '700' }}>{driverName}</Text>
         <Text style={s.muted}>Obrigado por compartilhar sua experiência.</Text>
@@ -60,10 +62,13 @@ export default function RateDriver({ go, session }) {
         multiline
         maxLength={1000}
       />
+      <RideReportForm rideId={rideId} />
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
-      <Button onPress={submitRating} disabled={loading || !rideId}>
-        {loading ? 'Enviando…' : 'Enviar avaliação'}
+      {rated ? <Text style={{ color: '#087a50' }}>Avaliação enviada.</Text> : null}
+      <Button onPress={submitRating} disabled={loading || rated || !rideId}>
+        {loading ? 'Enviando…' : rated ? 'Avaliação concluída' : 'Enviar avaliação'}
       </Button>
+      <Button light onPress={() => go('Home')}>Concluir</Button>
       {driverId ? (
         <Button light onPress={favoriteDriver} disabled={favoriteLoading}>
           {favoriteLoading ? 'Salvando…' : 'Adicionar motorista aos favoritos'}

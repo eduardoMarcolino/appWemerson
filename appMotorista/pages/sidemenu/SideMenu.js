@@ -9,6 +9,7 @@ const items = [
   ['Agenda', 'Schedule'],
   ['Ganhos', 'Earnings'],
   ['Desempenho', 'Performance'],
+  ['Denúncias recebidas', 'Reports'],
 ];
 
 export default function SideMenu({ go, onLogout }) {

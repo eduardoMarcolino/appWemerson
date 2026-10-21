@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable } from 'react-native';
 import { Button, Field, Page, s } from '../ui';
 import { api } from '../api';
 import CepAddressLookup from '../components/CepAddressLookup';
+import { isValidCpf } from '../utils/documentValidation';
 
 export default function Register({ go }) {
   const [nome, setNome] = useState('');
@@ -28,7 +29,7 @@ export default function Register({ go }) {
     if (nome.trim().length < 3) return setErro('Informe seu nome completo.');
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setErro('E-mail inválido.');
     if (telefone.replace(/\D/g, '').length < 10) return setErro('Telefone inválido.');
-    if (cpf.replace(/\D/g, '').length !== 11) return setErro('CPF deve ter 11 dígitos.');
+    if (!isValidCpf(cpf)) return setErro('CPF inválido. Confira os 11 dígitos.');
     if (senha.length < 6) return setErro('Senha deve ter pelo menos 6 caracteres.');
     if (senha !== senha2) return setErro('As senhas não coincidem.');
     if (!logradouro.trim() || !numero.trim() || !bairro.trim() || !cidade.trim() || !estado.trim() || !cep.trim())

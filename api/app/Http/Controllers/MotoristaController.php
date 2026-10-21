@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\DriverAccountResource;
+use App\Http\Resources\UserSummaryResource;
 use App\Models\EnderecoModel;
 use App\Models\MotoristaModel;
 use App\Models\TelModel;
 use App\Models\UserModel;
 use App\Models\VeiculoModel;
+use App\Rules\ValidCnh;
+use App\Rules\ValidCpf;
+use App\Support\MobileTokenIssuer;
 use App\Support\RideCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,13 +27,13 @@ class MotoristaController extends Controller
         return response()->json(MotoristaModel::with(['user', 'veiculos'])->get());
     }
 
-    public function cadastro(Request $request): JsonResponse
+    public function cadastro(Request $request, MobileTokenIssuer $tokenIssuer): JsonResponse
     {
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:3', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:tbUser,email'],
             'senha' => ['required', 'string', 'min:6', 'max:255'],
-            'cpf' => ['required', 'digits:11', 'unique:tbUser,cpf'],
+            'cpf' => ['required', 'digits:11', new ValidCpf, 'unique:tbUser,cpf'],
             'fotoPerfil' => ['nullable', 'string', 'max:255'],
             'numeroTelefone' => ['required', 'string', 'max:20'],
             'logradouro' => ['required', 'string', 'max:150'],
@@ -38,7 +43,7 @@ class MotoristaController extends Controller
             'estado' => ['nullable', 'string', 'size:2'],
             'cep' => ['nullable', 'string', 'max:9'],
             'complemento' => ['nullable', 'string', 'max:100'],
-            'cnh' => ['required', 'digits:11', Rule::unique('tbMotorista', 'cnh')],
+            'cnh' => ['required', 'digits:11', new ValidCnh, Rule::unique('tbMotorista', 'cnh')],
             'validadeCNH' => ['required', 'date', 'after:today'],
             'marca' => ['required', 'string', 'max:50'],
             'modelo' => ['required', 'string', 'max:50'],
@@ -98,15 +103,18 @@ class MotoristaController extends Controller
             return [$user, $motorista];
         });
 
+        $issuedToken = $tokenIssuer->issue($user, 'app-motorista');
+
         return response()->json([
             'message' => 'Motorista cadastrado com sucesso.',
-            'user' => $user,
-            'motorista' => $motorista,
-            'token' => $user->createToken('app-motorista')->plainTextToken,
+            'user' => UserSummaryResource::make($user)->resolve($request),
+            'motorista' => DriverAccountResource::make($motorista->load('veiculos'))->resolve($request),
+            'token' => $issuedToken->plainTextToken,
+            'expires_at' => $issuedToken->accessToken->expires_at?->toIso8601String(),
         ], 201);
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, MobileTokenIssuer $tokenIssuer): JsonResponse
     {
         $data = $request->validate([
             'email' => ['required', 'string'],
@@ -123,11 +131,14 @@ class MotoristaController extends Controller
             throw ValidationException::withMessages(['email' => 'Conta de motorista indisponível.']);
         }
 
+        $issuedToken = $tokenIssuer->issue($user, 'app-motorista');
+
         return response()->json([
             'success' => true,
-            'user' => $user,
-            'motorista' => $motorista,
-            'token' => $user->createToken('app-motorista')->plainTextToken,
+            'user' => UserSummaryResource::make($user)->resolve($request),
+            'motorista' => DriverAccountResource::make($motorista->load('veiculos'))->resolve($request),
+            'token' => $issuedToken->plainTextToken,
+            'expires_at' => $issuedToken->accessToken->expires_at?->toIso8601String(),
         ]);
     }
 }

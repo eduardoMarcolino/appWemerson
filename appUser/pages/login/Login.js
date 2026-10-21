@@ -30,7 +30,7 @@ export default function Login({ go, setSession }) {
       });
       if (status === 200 && data?.success) {
         const nextSession = { user: data.user, passageiro: data.passageiro, activeRide: null };
-        await persistSession(data.token, nextSession, rememberMe);
+        await persistSession(data.token, nextSession, rememberMe, data.expires_at);
         setSession((current) => ({ ...current, ...nextSession }));
         go('Home');
       } else {
@@ -69,7 +69,7 @@ export default function Login({ go, setSession }) {
             <Text style={s.muted}>Manter conectado neste dispositivo</Text>
           </View>
 
-          <Text style={[x.link, { color: linkColor }]}>Esqueceu a senha?</Text>
+          <Text style={[x.link, { color: linkColor }]} onPress={() => go('ForgotPassword')}>Esqueceu a senha?</Text>
 
           {erro ? <Text style={x.error}>{erro}</Text> : null}
 

@@ -68,6 +68,7 @@ export default function Profile({ go, session, setSession, onLogout }) {
             {session.user?.nome || 'Passageiro'}
           </Text>
           <Text style={{ color: '#d7efe3' }}>{session.user?.email || ''}</Text>
+          <Text style={{ color: '#fff', marginTop: 4 }}>★ {Number(profile?.avaliacaoMedia || 0).toFixed(1)} · {profile?.totalAvaliacoes || 0} avaliações recebidas</Text>
           <Button light disabled={uploading} onPress={() => changePhoto('camera')}>
             {uploading ? 'Enviando foto...' : 'Tirar foto'}
           </Button>
@@ -86,6 +87,7 @@ export default function Profile({ go, session, setSession, onLogout }) {
         <Button light onPress={() => go('Account')}>Editar ou desativar minha conta</Button>
         <Button onPress={() => go('Favorites')}>Endereços e motoristas favoritos</Button>
         <Button light onPress={() => go('Wallet')}>Ver pagamentos</Button>
+        <Button light onPress={() => go('Reports')}>Denúncias recebidas</Button>
         <Pressable onPress={onLogout}>
           <Text style={{ color: '#d22b2b', fontWeight: '700', padding: 10 }}>Sair da conta</Text>
         </Pressable>

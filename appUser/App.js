@@ -1,7 +1,9 @@
 import { ThemedText as Text } from './pages/ui';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import Login from './pages/login/Login';
+import ForgotPassword from './pages/passwordrecovery/ForgotPassword';
+import ResetPassword from './pages/passwordrecovery/ResetPassword';
 import Register from './pages/register/Register';
 import Home from './pages/home/Home';
 import CityEvents from './pages/cityevents/CityEvents';
@@ -18,11 +20,14 @@ import Category from './pages/category/Category';
 import SearchingDriver from './pages/searchingdriver/SearchingDriver';
 import Payment from './pages/payment/Payment';
 import RateDriver from './pages/ratedriver/RateDriver';
+import ReportsReceived from './pages/components/ReportsReceived';
 import ActiveRideSheet from './pages/components/ActiveRideSheet';
+import useRideLocationShare from './pages/utils/useRideLocationShare';
+import usePushNotifications from './pages/utils/usePushNotifications';
 import { api, clearStoredSession, loadRememberedSession, persistSession, setAuthToken, setAuthenticationExpiredHandler, setCacheFallbackHandler } from './pages/api';
 import { getThemeColors, setColorScheme } from './pages/ui';
 
-const screens = { Login, Register, Home, CityEvents, Favorites, History, Wallet, Profile, Account, SearchDestination, Schedule, MeetingPoint, Beneficiary, Category, SearchingDriver, Payment, RateDriver };
+const screens = { Login, ForgotPassword, ResetPassword, Register, Home, CityEvents, Favorites, History, Wallet, Profile, Account, SearchDestination, Schedule, MeetingPoint, Beneficiary, Category, SearchingDriver, Payment, RateDriver, Reports: ReportsReceived };
 export default function App() {
   const colorScheme = useColorScheme();
   setColorScheme(colorScheme);
@@ -47,6 +52,26 @@ export default function App() {
       beneficiarioTelefone: null,
     },
   });
+  const locationShareMessage = useRideLocationShare({
+    rideId: session.activeRide?.corrida?.corridaId,
+    status: session.activeRide?.corrida?.status,
+    type: 'Passageiro',
+    setSession,
+  });
+  const handlePushResponse = useCallback(async () => {
+    if (!session.user?.userId) return;
+    try {
+      const { data } = await api.getLive('/corridas/ativa');
+      if (data.activeRide) {
+        setSession((current) => ({ ...current, activeRide: data.activeRide }));
+        setScreen('SearchingDriver');
+      } else {
+        setSession((current) => ({ ...current, activeRide: null }));
+        setScreen('History');
+      }
+    } catch (_error) { setScreen('Home'); }
+  }, [session.user?.userId]);
+  const unregisterPushToken = usePushNotifications(session.user?.userId, handlePushResponse);
   const updateDraft = (values) => setSession((current) => ({
     ...current,
     tripDraft: { ...current.tripDraft, ...values },
@@ -76,7 +101,7 @@ export default function App() {
           const { data } = await api.get('/session');
           const { data: activeRideData } = await api.getLive('/corridas/ativa');
           const restored = { ...data, activeRide: activeRideData.activeRide };
-          await persistSession(saved.token, restored, true);
+          await persistSession(saved.token, restored, true, saved.expiresAt);
           if (active) {
             setSession((current) => ({ ...current, ...restored }));
             setScreen('Home');
@@ -109,6 +134,34 @@ export default function App() {
   useEffect(() => {
     setSheetRide(session.activeRide);
   }, [session.activeRide]);
+  const cancellationNotice = useRef(null);
+  useEffect(() => {
+    const rideId = session.activeRide?.corrida?.corridaId;
+    const initialStatus = session.activeRide?.corrida?.status;
+    if (!rideId || !session.user?.userId || !['Solicitada', 'Aceita', 'MotoristaChegando', 'EmAndamento'].includes(initialStatus)) return undefined;
+    let active = true;
+    let pending = false;
+    async function refreshRideStatus() {
+      if (pending) return;
+      pending = true;
+      try {
+        const { data } = await api.getLive(`/corridas/${rideId}`);
+        if (!active) return;
+        setSession((current) => ({ ...current, activeRide: data }));
+        if (data.corrida.status === 'Cancelada') {
+          setSheetRide(null);
+          if (cancellationNotice.current !== rideId) {
+            cancellationNotice.current = rideId;
+            Alert.alert('Corrida cancelada', data.corrida.motivoCancelamento || 'O outro participante cancelou a corrida.');
+          }
+        }
+      } catch (_error) { /* A tela conserva a última situação se a API estiver temporariamente indisponível. */ }
+      finally { pending = false; }
+    }
+    refreshRideStatus();
+    const timer = setInterval(refreshRideStatus, 5000);
+    return () => { active = false; clearInterval(timer); };
+  }, [session.activeRide?.corrida?.corridaId, session.activeRide?.corrida?.status, session.user?.userId]);
   useEffect(() => {
     if (!session.user?.userId || screen === 'SearchingDriver') return undefined;
     let active = true;
@@ -161,6 +214,7 @@ export default function App() {
   }, [session.user?.userId]);
   async function logout(revokeRemote = true) {
     let logoutError = null;
+    await unregisterPushToken();
     if (revokeRemote) {
       try {
         await api.post('/logout', {});
@@ -190,8 +244,8 @@ export default function App() {
           <View style={styles.loading}><ActivityIndicator color="#087a50" /><Text>Verificando sessão…</Text></View>
         ) : (
           <View style={styles.screenContainer}>
-            <Screen go={setScreen} session={session} setSession={setSession} updateDraft={updateDraft} onLogout={logout} />
-            <ActiveRideSheet activeRide={sheetRide} go={setScreen} />
+            <Screen go={setScreen} session={session} setSession={setSession} updateDraft={updateDraft} onLogout={logout} locationShareMessage={locationShareMessage} />
+            <ActiveRideSheet activeRide={sheetRide} go={setScreen} locationShareMessage={locationShareMessage} />
           </View>
         )}
       </View>

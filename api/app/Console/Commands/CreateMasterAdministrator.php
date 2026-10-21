@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\admModel;
 use App\Models\UserModel;
+use App\Rules\ValidCpf;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,7 @@ class CreateMasterAdministrator extends Command
             [
                 'nome' => ['required', 'string', 'min:3', 'max:100'],
                 'email' => ['required', 'email', 'max:150', 'unique:tbUser,email'],
-                'cpf' => ['required', 'digits:11', 'unique:tbUser,cpf'],
+                'cpf' => ['required', 'digits:11', new ValidCpf, 'unique:tbUser,cpf'],
                 'senha' => ['required', 'string', 'min:12', 'max:255'],
             ],
         );

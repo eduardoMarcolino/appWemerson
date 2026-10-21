@@ -1,60 +1,17 @@
 import { ThemedText as Text } from '../ui';
-import React, { useEffect, useState } from 'react';
-
-import * as Location from 'expo-location';
+import React from 'react';
 import RideMap from '../components/RideMap';
-import { api } from '../api';
 import { Button, Card, Page, s } from '../ui';
+import RideCancellation from '../components/RideCancellation';
+import RideIncidentPanel from '../components/RideIncidentPanel';
 
-export default function Trip({ go, session, setSession }) {
-  const [error, setError] = useState('');
+export default function Trip({ go, session, setSession, locationShareMessage }) {
   const ride = session.activeRide?.corrida;
-  const rideId = ride?.corridaId;
-
-  useEffect(() => {
-    if (!rideId || ride?.status !== 'EmAndamento') return undefined;
-    let active = true;
-    let locationRequestPending = false;
-
-    async function updateLocation() {
-      if (locationRequestPending) return;
-      locationRequestPending = true;
-      try {
-        let permission = await Location.getForegroundPermissionsAsync();
-        if (!permission.granted) {
-          permission = await Location.requestForegroundPermissionsAsync();
-        }
-        if (!permission.granted) {
-          if (active) setError('Permita a localização para compartilhar a posição da corrida.');
-          return;
-        }
-
-        const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const { data } = await api.post(`/corridas/${rideId}/localizacao`, {
-          latitude: current.coords.latitude,
-          longitude: current.coords.longitude,
-        });
-        if (active) {
-          setSession((sessionState) => ({
-            ...sessionState,
-            activeRide: { ...sessionState.activeRide, localizacao: data },
-          }));
-          setError('');
-        }
-      } catch (locationError) {
-        if (active) setError(locationError.message);
-      } finally {
-        locationRequestPending = false;
-      }
-    }
-
-    updateLocation();
-    const timer = setInterval(updateLocation, 5000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [ride?.status, rideId, setSession]);
+  const driverLocation = session.activeRide?.localizacaoMotorista || session.activeRide?.localizacao;
+  const passengerLocation = session.activeRide?.localizacaoPassageiro;
+  const passengerLocationAge = passengerLocation?.dataHora
+    ? Date.now() - new Date(passengerLocation.dataHora).getTime()
+    : null;
 
   return (
     <Page title="Em viagem" go={go} back="StartRide">
@@ -64,13 +21,18 @@ export default function Trip({ go, session, setSession }) {
             <Text style={{ fontWeight: '800' }}>Rumo ao destino</Text>
             <Text style={s.muted}>{ride.destino}</Text>
           </Card>
-          <RideMap ride={ride} location={session.activeRide?.localizacao} />
+          <RideMap ride={ride} location={driverLocation} participantLocation={passengerLocation} />
           <Card>
             <Text style={s.muted}>Distância estimada</Text>
             <Text style={{ fontWeight: '800' }}>{ride.distanciaKm} km</Text>
             <Text style={s.muted}>Passageiro: {ride.beneficiarioNome || 'titular da conta'}</Text>
+            <Text style={s.muted}>
+              {!passengerLocation ? 'Aguardando a localização do passageiro…' : passengerLocationAge > 30000 ? 'Sinal do passageiro desatualizado; mostrando a última posição recebida.' : 'Posição do passageiro atualizada.'}
+            </Text>
           </Card>
-          {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
+          {locationShareMessage ? <Text style={s.muted}>{locationShareMessage}</Text> : null}
+          <RideIncidentPanel rideId={ride.corridaId} enabled={ride.status === 'EmAndamento'} />
+          <RideCancellation rideId={ride.corridaId} onCancelled={(cancelledRide) => { setSession((current) => ({ ...current, activeRide: cancelledRide })); go('Home'); }} />
           <Button onPress={() => go('FinishRide')}>Cheguei ao destino</Button>
         </>
       ) : <Text style={s.muted}>Não há corrida em andamento.</Text>}

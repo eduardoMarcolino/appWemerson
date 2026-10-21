@@ -8,11 +8,14 @@ export const API_URL = `${(configuredUrl || defaultHost).replace(/\/+$/, '')}/ap
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
 const tokenKey = '@interiorgo/auth/token';
 const sessionKey = '@interiorgo/auth/session';
+const expiresAtKey = '@interiorgo/auth/expires-at';
 const cachePrefix = '@interiorgo/cache/';
 let cacheUserId = 'anonymous';
 let onAuthenticationExpired;
 let onCacheFallback;
 let cacheFallbackNotified = false;
+let tokenExpiresAt = null;
+let refreshInProgress = null;
 
 const client = axios.create({
   baseURL: API_URL,
@@ -27,7 +30,7 @@ const client = axios.create({
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401
+    if ((error.response?.status === 401 && error.config?.headers?.Authorization)
       || (error.response?.status === 403 && error.config?.url?.endsWith('/session'))) {
       onAuthenticationExpired?.();
     }
@@ -49,8 +52,9 @@ client.interceptors.response.use(
   },
 );
 
-export function setAuthToken(token, userId) {
+export function setAuthToken(token, userId, expiresAt = null) {
   cacheUserId = token ? String(userId || 'anonymous') : 'anonymous';
+  tokenExpiresAt = token ? expiresAt : null;
   if (token) {
     client.defaults.headers.common.Authorization = `Bearer ${token}`;
   } else {
@@ -73,6 +77,7 @@ export function profilePhotoUrl(path) {
 }
 
 export async function uploadProfilePhoto(asset) {
+  await ensureFreshToken();
   const formData = new FormData();
   formData.append('foto', {
     uri: asset.uri,
@@ -86,15 +91,16 @@ export async function uploadProfilePhoto(asset) {
   return response.data;
 }
 
-export async function persistSession(token, session, rememberMe) {
-  setAuthToken(token, session.user?.userId);
+export async function persistSession(token, session, rememberMe, expiresAt = null) {
+  setAuthToken(token, session.user?.userId, expiresAt);
   if (rememberMe) {
     await AsyncStorage.multiSet([
       [tokenKey, token],
       [sessionKey, JSON.stringify(session)],
+      [expiresAtKey, expiresAt || ''],
     ]);
   } else {
-    await AsyncStorage.multiRemove([tokenKey, sessionKey]);
+    await AsyncStorage.multiRemove([tokenKey, sessionKey, expiresAtKey]);
   }
 }
 
@@ -106,7 +112,7 @@ export async function updateStoredSession(session) {
 }
 
 export async function loadRememberedSession() {
-  const [[, token], [, sessionValue]] = await AsyncStorage.multiGet([tokenKey, sessionKey]);
+  const [[, token], [, sessionValue], [, expiresAt]] = await AsyncStorage.multiGet([tokenKey, sessionKey, expiresAtKey]);
   if (!token || !sessionValue) {
     await AsyncStorage.multiRemove([tokenKey, sessionKey]);
     return null;
@@ -124,15 +130,34 @@ export async function loadRememberedSession() {
     await clearStoredSession();
     return null;
   }
-  setAuthToken(token, session.user.userId);
-  return { token, session };
+  setAuthToken(token, session.user.userId, expiresAt || null);
+  return { token, session, expiresAt: expiresAt || null };
 }
 
 export async function clearStoredSession() {
   const keys = await AsyncStorage.getAllKeys();
   const cachedKeys = keys.filter((key) => key.startsWith(cachePrefix));
-  await AsyncStorage.multiRemove([tokenKey, sessionKey, ...cachedKeys]);
+  await AsyncStorage.multiRemove([tokenKey, sessionKey, expiresAtKey, ...cachedKeys]);
   setAuthToken(null);
+}
+
+async function ensureFreshToken() {
+  if (!client.defaults.headers.common.Authorization) return;
+  const expiresSoon = !tokenExpiresAt || new Date(tokenExpiresAt).getTime() <= Date.now() + 5 * 60 * 1000;
+  if (!expiresSoon) return;
+  if (!refreshInProgress) {
+    refreshInProgress = client.post('/auth/refresh', {}).then(async ({ data }) => {
+      const userId = cacheUserId;
+      setAuthToken(data.token, userId, data.expires_at);
+      const storedToken = await AsyncStorage.getItem(tokenKey);
+      if (storedToken) {
+        await AsyncStorage.multiSet([[tokenKey, data.token], [expiresAtKey, data.expires_at || '']]);
+      }
+    }).finally(() => {
+      refreshInProgress = null;
+    });
+  }
+  await refreshInProgress;
 }
 
 function cacheKey(path) {
@@ -146,22 +171,26 @@ async function invalidateCache() {
 
 export const api = {
   post: async (path, body) => {
+    await ensureFreshToken();
     const response = await client.post(path, body);
     await invalidateCache();
     return { data: response.data, status: response.status };
   },
   put: async (path, body) => {
+    await ensureFreshToken();
     const response = await client.put(path, body);
     await invalidateCache();
     return { data: response.data, status: response.status };
   },
   delete: async (path, body) => {
+    await ensureFreshToken();
     const response = await client.delete(path, { data: body });
     await invalidateCache();
     return { data: response.data, status: response.status };
   },
   get: async (path) => {
     try {
+      await ensureFreshToken();
       const response = await client.get(path);
       await AsyncStorage.setItem(cacheKey(path), JSON.stringify(response.data));
       cacheFallbackNotified = false;
@@ -178,6 +207,7 @@ export const api = {
     }
   },
   getLive: async (path) => {
+    await ensureFreshToken();
     const response = await client.get(path);
     return { data: response.data, status: response.status };
   },

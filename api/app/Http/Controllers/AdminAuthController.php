@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\admModel;
 use App\Models\UserModel;
+use App\Rules\ValidCpf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ class AdminAuthController extends Controller
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:3', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:tbUser,email'],
-            'cpf' => ['required', 'digits:11', 'unique:tbUser,cpf'],
+            'cpf' => ['required', 'digits:11', new ValidCpf, 'unique:tbUser,cpf'],
             'senha' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
         ]);
 

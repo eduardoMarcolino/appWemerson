@@ -25,6 +25,21 @@ export default function RideDetails({ go, session, setSession }) {
     }
   }
 
+  async function declineRide() {
+    if (!ride?.corridaId) return;
+    setLoading(true);
+    setError('');
+    try {
+      await api.post(`/corridas/${ride.corridaId}/recusar`, {});
+      setSession((current) => ({ ...current, activeRide: null }));
+      go('NewRequest');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Page title="Detalhes da corrida" go={go} back="NewRequest">
       {ride ? (
@@ -43,6 +58,9 @@ export default function RideDetails({ go, session, setSession }) {
           {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
           <Button onPress={acceptRide} disabled={loading}>
             {loading ? 'Aceitando…' : 'Aceitar corrida'}
+          </Button>
+          <Button light onPress={declineRide} disabled={loading}>
+            {loading ? 'Atualizando…' : 'Recusar esta solicitação'}
           </Button>
           <Button light onPress={() => go('NewRequest')}>Voltar às solicitações</Button>
         </>

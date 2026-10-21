@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { api, updateStoredSession } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
+import { isValidCpf } from '../utils/documentValidation';
 
 const emptyForm = {
   nome: '',
@@ -64,6 +65,10 @@ export default function Account({ go, session, setSession, onLogout }) {
   async function save() {
     setError('');
     setNotice('');
+    if (!isValidCpf(form.cpf)) {
+      setError('CPF inválido. Confira os 11 dígitos.');
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
@@ -101,7 +106,7 @@ export default function Account({ go, session, setSession, onLogout }) {
 
   return (
     <Page title="Minha conta" go={go} back="Profile">
-      <Text style={s.muted}>Altere seus dados ou desative sua conta. A senha atual é necessária para salvar as alterações.</Text>
+      <Text style={s.muted}>Altere seus dados ou exclua sua conta. A senha atual é necessária para salvar alterações e confirmar a exclusão.</Text>
       <Field label="Nome completo" value={form.nome} onChangeText={update('nome')} />
       <Field label="E-mail" value={form.email} onChangeText={update('email')} keyboardType="email-address" />
       <Field label="CPF" value={form.cpf} onChangeText={update('cpf')} keyboardType="number-pad" />
@@ -122,14 +127,14 @@ export default function Account({ go, session, setSession, onLogout }) {
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
       <Button onPress={save} disabled={loading}>{loading ? 'Salvando…' : 'Salvar alterações'}</Button>
       <Card style={{ borderColor: '#f0caca', borderWidth: 1 }}>
-        <Text style={{ color: '#b42318', fontWeight: '700' }}>Desativar conta</Text>
-        <Text style={s.muted}>A conta será desativada, você será desconectado e sua foto de perfil será removida. Os dados associados ao histórico das corridas serão mantidos. Para reativar a conta, fale com o suporte.</Text>
+        <Text style={{ color: '#b42318', fontWeight: '700' }}>Excluir conta</Text>
+        <Text style={s.muted}>Essa ação é permanente: seus dados de cadastro, contato, endereço e localização serão removidos. Rotas e comentários de corridas serão apagados; alguns dados operacionais e notas podem permanecer sem identificação direta. Corridas em andamento precisam ser concluídas ou canceladas primeiro.</Text>
         {!confirmDeactivate ? (
-          <Button danger onPress={() => setConfirmDeactivate(true)}>Quero desativar minha conta</Button>
+          <Button danger onPress={() => setConfirmDeactivate(true)}>Quero excluir minha conta</Button>
         ) : (
           <View style={{ gap: 10 }}>
             <Field label="Confirme sua senha atual" value={deactivationPassword} onChangeText={setDeactivationPassword} secureTextEntry />
-            <Button danger onPress={deactivate} disabled={loading || !deactivationPassword}>Confirmar desativação</Button>
+            <Button danger onPress={deactivate} disabled={loading || !deactivationPassword}>Confirmar exclusão da conta</Button>
             <Button light onPress={() => setConfirmDeactivate(false)}>Cancelar</Button>
           </View>
         )}

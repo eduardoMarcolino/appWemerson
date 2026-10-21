@@ -18,7 +18,7 @@ const statusLabels = {
   EmAndamento: 'Corrida em andamento',
 };
 
-export default function ActiveRideSheet({ activeRide, go }) {
+export default function ActiveRideSheet({ activeRide, go, locationShareMessage }) {
   const scheme = useColorScheme();
   const theme = getThemeColors(scheme);
   const { height: windowHeight } = useWindowDimensions();
@@ -114,6 +114,7 @@ export default function ActiveRideSheet({ activeRide, go }) {
           {scheduledAt ? (
             <Text style={[styles.status, { color: theme.secondaryText }]}>Agendada para {new Date(scheduledAt).toLocaleString('pt-BR')}</Text>
           ) : null}
+          {ride.status === 'EmAndamento' && locationShareMessage ? <Text style={[styles.status, { color: theme.secondaryText }]}>{locationShareMessage}</Text> : null}
           {driverName ? <Text style={styles.location}>Motorista: {driverName}</Text> : null}
           {vehicle ? <Text style={[styles.status, { color: theme.secondaryText }]}>{vehicle.marca} {vehicle.modelo} · {vehicle.placa}</Text> : null}
           <Pressable onPress={openRide} style={styles.openButton}>

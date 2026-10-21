@@ -37,6 +37,19 @@ export default function Schedule({ go, setSession }) {
     }
   }
 
+  async function decline(id) {
+    setBusyId(id);
+    setError('');
+    try {
+      await api.post(`/corridas/${id}/recusar`, {});
+      setRides((current) => current.filter(({ corrida }) => corrida.corridaId !== id));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <Page title="Agenda" go={go} nav="Schedule">
       <Text style={s.h2}>Corridas agendadas disponíveis</Text>
@@ -52,6 +65,9 @@ export default function Schedule({ go, setSession }) {
           <Text style={{ fontWeight: '800' }}>R$ {Number(corrida.valorCorrida).toFixed(2)}</Text>
           <Button onPress={() => accept(corrida.corridaId)} disabled={busyId !== null}>
             {busyId === corrida.corridaId ? 'Aceitando…' : 'Aceitar agendamento'}
+          </Button>
+          <Button light onPress={() => decline(corrida.corridaId)} disabled={busyId !== null}>
+            {busyId === corrida.corridaId ? 'Atualizando…' : 'Recusar agendamento'}
           </Button>
         </Card>
       ))}

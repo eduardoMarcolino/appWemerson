@@ -2,6 +2,7 @@ const { withAndroidManifest } = require('expo/config-plugins');
 
 module.exports = ({ config }) => {
   const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const googleServicesFile = process.env.GOOGLE_SERVICES_FILE;
   const isAndroidEasBuild = process.env.EAS_BUILD && process.env.EAS_BUILD_PLATFORM === 'android';
 
   if (isAndroidEasBuild && !googleMapsApiKey) {
@@ -13,7 +14,16 @@ module.exports = ({ config }) => {
     'expo-location',
   ];
 
-  return withAndroidManifest({ ...config, plugins }, (modConfig) => {
+  const appConfig = {
+    ...config,
+    android: {
+      ...config.android,
+      ...(googleServicesFile ? { googleServicesFile } : {}),
+    },
+    plugins,
+  };
+
+  return withAndroidManifest(appConfig, (modConfig) => {
     const application = modConfig.modResults.manifest.application?.[0];
     if (!application) {
       throw new Error('Android manifest is missing the application element.');

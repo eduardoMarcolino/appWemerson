@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserSummaryResource;
 use App\Models\EnderecoModel;
 use App\Models\PassageiroModel;
 use App\Models\TelModel;
 use App\Models\UserModel;
+use App\Rules\ValidCpf;
+use App\Support\MobileTokenIssuer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,13 +22,13 @@ class PassageiroController extends Controller
         return response()->json(PassageiroModel::with('user')->get());
     }
 
-    public function cadastro(Request $request): JsonResponse
+    public function cadastro(Request $request, MobileTokenIssuer $tokenIssuer): JsonResponse
     {
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:3', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:tbUser,email'],
             'senha' => ['required', 'string', 'min:6', 'max:255'],
-            'cpf' => ['required', 'digits:11', 'unique:tbUser,cpf'],
+            'cpf' => ['required', 'digits:11', new ValidCpf, 'unique:tbUser,cpf'],
             'fotoPerfil' => ['nullable', 'string', 'max:255'],
             'numeroTelefone' => ['required', 'string', 'max:20'],
             'logradouro' => ['required', 'string', 'max:150'],
@@ -72,15 +75,18 @@ class PassageiroController extends Controller
             return [$user, $passageiro];
         });
 
+        $issuedToken = $tokenIssuer->issue($user, 'app-passageiro');
+
         return response()->json([
             'message' => 'Passageiro cadastrado com sucesso.',
-            'user' => $user,
-            'passageiro' => $passageiro,
-            'token' => $user->createToken('app-passageiro')->plainTextToken,
+            'user' => UserSummaryResource::make($user)->resolve($request),
+            'passageiro' => ['passageiroId' => $passageiro->passageiroId, 'status' => $passageiro->status],
+            'token' => $issuedToken->plainTextToken,
+            'expires_at' => $issuedToken->accessToken->expires_at?->toIso8601String(),
         ], 201);
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, MobileTokenIssuer $tokenIssuer): JsonResponse
     {
         $data = $request->validate([
             'email' => ['required', 'string'],
@@ -104,11 +110,14 @@ class PassageiroController extends Controller
             throw ValidationException::withMessages(['email' => 'Conta de passageiro indisponível.']);
         }
 
+        $issuedToken = $tokenIssuer->issue($user, 'app-passageiro');
+
         return response()->json([
             'success' => true,
-            'user' => $user,
-            'passageiro' => $passageiro,
-            'token' => $user->createToken('app-passageiro')->plainTextToken,
+            'user' => UserSummaryResource::make($user)->resolve($request),
+            'passageiro' => ['passageiroId' => $passageiro->passageiroId, 'status' => $passageiro->status],
+            'token' => $issuedToken->plainTextToken,
+            'expires_at' => $issuedToken->accessToken->expires_at?->toIso8601String(),
         ]);
     }
 }

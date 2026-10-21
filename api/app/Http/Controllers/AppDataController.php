@@ -2,7 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CityEventResource;
+use App\Http\Resources\FavoriteAddressResource;
+use App\Http\Resources\InterestPointResource;
+use App\Http\Resources\PublicDriverResource;
+use App\Http\Resources\RideResource;
 use App\Models\CorridaModel;
+use App\Models\AvaliacaoModel;
 use App\Models\EnderecoFavModel;
 use App\Models\EventoModel;
 use App\Models\MotoristaFavoritoModel;
@@ -30,17 +36,52 @@ class AppDataController extends Controller
 
         $data = [
             'perfil' => [
-                'telefones' => $user->telefones,
-                'enderecos' => $user->enderecos,
+                'avaliacaoMedia' => $passenger
+                    ? (float) (AvaliacaoModel::whereIn('corridaId', CorridaModel::where('passageiroId', $passenger->passageiroId)->select('corridaId'))
+                        ->where('avaliadoPor', 'Motorista')->avg('nota') ?? 0)
+                    : (float) ($driver?->avaliacaoMedia ?? 0),
+                'totalAvaliacoes' => $passenger
+                    ? AvaliacaoModel::whereIn('corridaId', CorridaModel::where('passageiroId', $passenger->passageiroId)->select('corridaId'))
+                        ->where('avaliadoPor', 'Motorista')->count()
+                    : ($driver ? AvaliacaoModel::where('motoristaId', $driver->motoristaId)->where('avaliadoPor', 'Passageiro')->count() : 0),
+                'telefones' => $user->telefones->map(fn ($phone): array => [
+                    'telefoneId' => $phone->telefoneId,
+                    'numeroTelefone' => $phone->numeroTelefone,
+                ])->all(),
+                'enderecos' => $user->enderecos->map(fn ($address): array => [
+                    'enderecoId' => $address->enderecoId,
+                    'logradouro' => $address->logradouro,
+                    'numero' => $address->numero,
+                    'complemento' => $address->complemento,
+                    'bairro' => $address->bairro,
+                    'cidade' => $address->cidade,
+                    'estado' => $address->estado,
+                    'cep' => $address->cep,
+                ])->all(),
             ],
-            'eventos' => EventoModel::where('ativo', true)->where('dataFim', '>=', now())->orderBy('dataInicio')->get(),
-            'pontosInteresse' => PontoInteresseModel::where('status', 'Ativo')->orderBy('nome')->get(),
-            'pontosEmbarque' => PontoInteresseModel::where('status', 'Ativo')->where('pontoEmbarque', true)->orderBy('nome')->get(),
+            'eventos' => CityEventResource::collection(
+                EventoModel::where('ativo', true)->where('dataFim', '>=', now())->orderBy('dataInicio')->get(),
+            )->resolve($request),
+            'pontosInteresse' => InterestPointResource::collection(
+                PontoInteresseModel::where('status', 'Ativo')->orderBy('nome')->get(),
+            )->resolve($request),
+            'pontosEmbarque' => InterestPointResource::collection(
+                PontoInteresseModel::where('status', 'Ativo')->where('pontoEmbarque', true)->orderBy('nome')->get(),
+            )->resolve($request),
             'pontosEncontro' => $passenger
                 ? PontoEncontroModel::where('passageiroId', $passenger->passageiroId)->orderBy('nome')->get()
+                    ->map(fn (PontoEncontroModel $point): array => [
+                        'pontoEncontroId' => $point->pontoEncontroId,
+                        'nome' => $point->nome,
+                        'endereco' => $point->endereco,
+                        'latitude' => $point->latitude,
+                        'longitude' => $point->longitude,
+                    ])->all()
                 : [],
             'enderecosFavoritos' => $passenger
-                ? EnderecoFavModel::where('userId', $user->userId)->orderBy('nome')->get()
+                ? FavoriteAddressResource::collection(
+                    EnderecoFavModel::where('userId', $user->userId)->orderBy('nome')->get(),
+                )->resolve($request)
                 : [],
             'motoristasFavoritos' => $passenger
                 ? $this->favoriteDrivers($passenger->passageiroId)
@@ -67,7 +108,7 @@ class AppDataController extends Controller
             'userId' => $request->user()->userId,
         ]);
 
-        return response()->json($address, 201);
+        return response()->json(FavoriteAddressResource::make($address)->resolve($request), 201);
     }
 
     public function deleteFavoriteAddress(Request $request, int $id): JsonResponse
@@ -118,6 +159,7 @@ class AppDataController extends Controller
             ->whereIn('motoristaId', MotoristaFavoritoModel::where('passageiroId', $passengerId)->select('motoristaId'))
             ->orderBy('motoristaId')
             ->get()
+            ->map(fn (MotoristaModel $driver): array => PublicDriverResource::make($driver)->resolve(request()))
             ->all();
     }
 
@@ -131,7 +173,16 @@ class AppDataController extends Controller
             ->map(function (PagamentoModel $payment): array {
                 $ride = CorridaModel::findOrFail($payment->corridaId);
 
-                return ['pagamento' => $payment, 'corrida' => $ride];
+                return [
+                    'pagamento' => [
+                        'pagamentoId' => $payment->pagamentoId,
+                        'valorPago' => $payment->valorPago,
+                        'formaPagamento' => $payment->formaPagamento,
+                        'dataPagamento' => $payment->dataPagamento,
+                        'statusPagamento' => $payment->statusPagamento,
+                    ],
+                    'corrida' => RideResource::make($ride)->resolve(request()),
+                ];
             })
             ->all();
     }

@@ -4,6 +4,7 @@ import { Pressable } from 'react-native';
 import { api, persistSession } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
 import CepAddressLookup from '../components/CepAddressLookup';
+import { isValidCpf, isValidCnh } from '../utils/documentValidation';
 
 const initialForm = {
   nome: '',
@@ -53,6 +54,14 @@ export default function RegisterDriver({ go, setSession }) {
 
   async function register() {
     setError('');
+    if (!isValidCpf(form.cpf)) {
+      setError('CPF inválido. Confira os 11 dígitos.');
+      return;
+    }
+    if (!isValidCnh(form.cnh)) {
+      setError('CNH inválida. Confira os 11 dígitos.');
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
@@ -65,7 +74,7 @@ export default function RegisterDriver({ go, setSession }) {
       };
       const { data } = await api.post('/motorista/insert', payload);
       const nextSession = { user: data.user, motorista: data.motorista, activeRide: null };
-      await persistSession(data.token, nextSession, false);
+      await persistSession(data.token, nextSession, false, data.expires_at);
       setSession(nextSession);
       go('Home');
     } catch (requestError) {

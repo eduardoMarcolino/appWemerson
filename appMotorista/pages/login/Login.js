@@ -22,7 +22,7 @@ export default function Login({ go, setSession }) {
     try {
       const { data } = await api.post('/loginMotorista', { email: email.trim(), senha });
       const nextSession = { user: data.user, motorista: data.motorista, activeRide: null };
-      await persistSession(data.token, nextSession, rememberMe);
+      await persistSession(data.token, nextSession, rememberMe, data.expires_at);
       setSession(nextSession);
       go('Home');
     } catch (requestError) {
@@ -56,6 +56,7 @@ export default function Login({ go, setSession }) {
             <Switch value={rememberMe} onValueChange={setRememberMe} />
             <Text style={s.muted}>Manter conectado neste dispositivo</Text>
           </View>
+          <Text style={[x.link, { color: linkColor }]} onPress={() => go('ForgotPassword')}>Esqueceu a senha?</Text>
           {error ? <Text style={x.error}>{error}</Text> : null}
           <Button onPress={enter} disabled={loading || !email.trim() || !senha}>
             {loading ? 'Entrando…' : 'Entrar'}

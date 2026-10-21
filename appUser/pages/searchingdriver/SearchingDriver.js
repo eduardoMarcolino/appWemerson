@@ -1,19 +1,10 @@
 import { ThemedText as Text } from '../ui';
-import React, { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Button, Card, Page, s } from '../ui';
 import MapPicker from '../components/MapPicker';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+import RideCancellation from '../components/RideCancellation';
+import RideIncidentPanel from '../components/RideIncidentPanel';
 
 function hasRideViewChanged(previous, next) {
   if (!previous || !next) return previous !== next;
@@ -24,19 +15,30 @@ function hasRideViewChanged(previous, next) {
     || previous.corrida?.destino !== next.corrida?.destino
     || previous.localizacao?.latitude !== next.localizacao?.latitude
     || previous.localizacao?.longitude !== next.localizacao?.longitude
+    || previous.localizacao?.dataHora !== next.localizacao?.dataHora
+    || previous.localizacaoMotorista?.latitude !== next.localizacaoMotorista?.latitude
+    || previous.localizacaoMotorista?.longitude !== next.localizacaoMotorista?.longitude
+    || previous.localizacaoMotorista?.dataHora !== next.localizacaoMotorista?.dataHora
+    || previous.localizacaoPassageiro?.latitude !== next.localizacaoPassageiro?.latitude
+    || previous.localizacaoPassageiro?.longitude !== next.localizacaoPassageiro?.longitude
+    || previous.localizacaoPassageiro?.dataHora !== next.localizacaoPassageiro?.dataHora
     || previous.motorista?.user?.nome !== next.motorista?.user?.nome
     || previous.motorista?.veiculos?.[0]?.marca !== next.motorista?.veiculos?.[0]?.marca
     || previous.motorista?.veiculos?.[0]?.modelo !== next.motorista?.veiculos?.[0]?.modelo
     || previous.motorista?.veiculos?.[0]?.placa !== next.motorista?.veiculos?.[0]?.placa
     || previous.agendamento?.dataHora !== next.agendamento?.dataHora;
 }
-export default function SearchingDriver({ go, session, setSession }) {
+export default function SearchingDriver({ go, session, setSession, locationShareMessage }) {
   const [error, setError] = useState('');
-  const notifiedStatus = useRef(session.activeRide?.corrida?.status);
-  const canNotify = useRef(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const rideId = session.activeRide?.corrida?.corridaId;
   const ride = session.activeRide?.corrida;
   const driver = session.activeRide?.motorista;
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!rideId) {
@@ -56,18 +58,8 @@ export default function SearchingDriver({ go, session, setSession }) {
           if (!hasRideViewChanged(current.activeRide, data)) return current;
           return { ...current, activeRide: data };
         });
-        const status = data.corrida.status;
-        if (status !== notifiedStatus.current && ['Aceita', 'MotoristaChegando', 'Finalizada', 'Cancelada'].includes(status)) {
-          notifiedStatus.current = status;
-          if (canNotify.current) {
-            await Notifications.scheduleNotificationAsync({
-            content: { channelId: 'rides', title: 'Atualização da corrida', body: `Status: ${status}`, data: { rideId } },
-              trigger: null,
-            });
-          }
-        }
-        if (data.corrida.status === 'Finalizada') go('Payment');
-        if (data.corrida.status === 'Cancelada') setError('Esta corrida foi cancelada.');
+        if (data.corrida.status === 'Finalizada') go('RateDriver');
+        if (data.corrida.status === 'Cancelada') setError(`Esta corrida foi cancelada. Motivo: ${data.corrida.motivoCancelamento || 'não informado'}`);
       } catch (requestError) {
         if (mounted) setError(requestError.message);
       } finally {
@@ -75,29 +67,6 @@ export default function SearchingDriver({ go, session, setSession }) {
       }
     }
 
-    async function requestNotificationPermission() {
-      try {
-        if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('rides', {
-            name: 'Atualizações da corrida',
-            importance: Notifications.AndroidImportance.DEFAULT,
-          });
-        }
-        const current = await Notifications.getPermissionsAsync();
-        canNotify.current = current.granted;
-        if (!current.granted) {
-          const permission = await Notifications.requestPermissionsAsync();
-          canNotify.current = permission.granted;
-          if (!permission.granted && mounted) {
-            setError('Notificações desativadas. O status ainda será atualizado enquanto o app estiver aberto.');
-          }
-        }
-      } catch (notificationError) {
-        if (mounted) setError(`Não foi possível configurar notificações: ${notificationError.message}`);
-      }
-    }
-
-    requestNotificationPermission();
     refreshRide();
     const timer = setInterval(refreshRide, 5000);
     return () => {
@@ -106,19 +75,12 @@ export default function SearchingDriver({ go, session, setSession }) {
     };
   }, [go, rideId, setSession]);
 
-  async function cancelRide() {
-    setError('');
-    try {
-      const { data } = await api.post(`/corridas/${rideId}/cancelar`, {});
-      setSession((current) => ({ ...current, activeRide: data.corrida }));
-      go('Home');
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  }
-
-  const marker = session.activeRide?.localizacao
-    ? { latitude: Number(session.activeRide.localizacao.latitude), longitude: Number(session.activeRide.localizacao.longitude) }
+  const driverLocation = session.activeRide?.localizacaoMotorista || session.activeRide?.localizacao;
+  const locationAge = driverLocation?.dataHora
+    ? currentTime - new Date(driverLocation.dataHora).getTime()
+    : null;
+  const marker = driverLocation
+    ? { latitude: Number(driverLocation.latitude), longitude: Number(driverLocation.longitude) }
     : {
       latitude: Number(ride?.latitudeOrigem) || -23.5505,
       longitude: Number(ride?.longitudeOrigem) || -46.6333,
@@ -127,6 +89,10 @@ export default function SearchingDriver({ go, session, setSession }) {
   return (
     <Page title="Acompanhamento da corrida" go={go} back="Home">
       <MapPicker value={marker} interactive={false} />
+      <Text style={s.muted}>
+        {!driverLocation ? 'Aguardando a localização do motorista…' : locationAge > 30000 ? 'Sinal do motorista desatualizado; mostrando a última posição recebida.' : 'Posição do motorista atualizada.'}
+      </Text>
+      {locationShareMessage ? <Text style={s.muted}>{locationShareMessage}</Text> : null}
       <Card>
         <Text style={s.h2}>
           {ride?.status === 'Solicitada' ? 'Buscando motorista…' : ride?.status}
@@ -142,10 +108,11 @@ export default function SearchingDriver({ go, session, setSession }) {
         </Card>
       ) : null}
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
-      {ride?.status === 'Finalizada' ? <Button onPress={() => go('Payment')}>Ir para pagamento</Button> : null}
-      {['Solicitada', 'Aceita', 'MotoristaChegando'].includes(ride?.status) ? (
-        <Button light onPress={cancelRide}>Cancelar corrida</Button>
+      {ride?.status === 'Finalizada' ? <Button onPress={() => go('RateDriver')}>Avaliar motorista</Button> : null}
+      {['Solicitada', 'Aceita', 'MotoristaChegando', 'EmAndamento'].includes(ride?.status) ? (
+        <RideCancellation rideId={rideId} onCancelled={(cancelledRide) => { setSession((current) => ({ ...current, activeRide: cancelledRide })); go('Home'); }} />
       ) : null}
+      <RideIncidentPanel rideId={rideId} enabled={ride?.status === 'EmAndamento'} />
     </Page>
   );
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\UserModel;
 
 return [
 
@@ -67,6 +68,11 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
+        'interiorgo_users' => [
+            'driver' => 'eloquent',
+            'model' => UserModel::class,
+        ],
+
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
@@ -94,10 +100,10 @@ return [
 
     'passwords' => [
         'users' => [
-            'provider' => 'users',
+            'provider' => 'interiorgo_users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
-            'throttle' => 60,
+            'expire' => (int) env('PASSWORD_RESET_EXPIRE_MINUTES', 15),
+            'throttle' => (int) env('PASSWORD_RESET_THROTTLE_SECONDS', 60),
         ],
     ],
 

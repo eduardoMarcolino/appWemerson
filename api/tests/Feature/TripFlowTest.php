@@ -5,6 +5,7 @@ use App\Models\PassageiroModel;
 use App\Models\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -20,7 +21,7 @@ function passengerCredentials(): array
         'nome' => 'Ana Teste',
         'email' => 'ana.teste@example.test',
         'senha' => 'senha-segura',
-        'cpf' => '12345678901',
+        'cpf' => '52998224725',
         'numeroTelefone' => '11999998888',
         'logradouro' => 'Rua de Teste',
         'numero' => '10',
@@ -42,7 +43,7 @@ function driverCredentials(): array
         'logradouro' => 'Rua do Motorista',
         'cidade' => 'São Paulo',
         'estado' => 'SP',
-        'cnh' => '12345678901',
+        'cnh' => '12345678900',
         'validadeCNH' => now()->addYear()->toDateString(),
         'marca' => 'Chevrolet',
         'modelo' => 'Onix',
@@ -132,10 +133,30 @@ it('supports an authenticated passenger and driver ride from request through pay
     $this->postJson("/api/corridas/{$rideId}/iniciar", [], $driverHeaders)
         ->assertOk()
         ->assertJsonPath('corrida.corrida.status', 'EmAndamento');
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/incidentes", [
+        'categoria' => 'Veiculo',
+        'descricao' => 'Pneu com baixa pressão.',
+    ], $passengerHeaders)->assertCreated()->assertJsonPath('incidente.reportadoPor', 'Passageiro');
+    resetApiAuth();
+    $this->getJson("/api/corridas/{$rideId}/incidentes", $driverHeaders)
+        ->assertOk()->assertJsonPath('incidentes.0.descricao', 'Pneu com baixa pressão.');
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/incidentes", [
+        'categoria' => 'Rota',
+        'descricao' => 'Desvio inesperado.',
+    ], $passengerHeaders)->assertCreated();
+    resetApiAuth();
     $this->postJson("/api/corridas/{$rideId}/localizacao", [
         'latitude' => -23.555,
         'longitude' => -46.644,
     ], $driverHeaders)->assertCreated();
+
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/localizacao", [
+        'latitude' => -23.556,
+        'longitude' => -46.645,
+    ], $passengerHeaders)->assertCreated()->assertJsonPath('tipo', 'Passageiro');
 
     resetApiAuth();
     $this->getJson('/api/corridas/ativa', $passengerHeaders)
@@ -148,7 +169,9 @@ it('supports an authenticated passenger and driver ride from request through pay
     resetApiAuth();
     $this->getJson("/api/corridas/{$rideId}", $passengerHeaders)
         ->assertOk()
-        ->assertJsonPath('localizacao.latitude', -23.555);
+        ->assertJsonPath('localizacao.latitude', -23.555)
+        ->assertJsonPath('localizacaoMotorista.latitude', -23.555)
+        ->assertJsonPath('localizacaoPassageiro.latitude', -23.556);
 
     resetApiAuth();
     $this->postJson("/api/corridas/{$rideId}/finalizar", [], $driverHeaders)
@@ -163,21 +186,44 @@ it('supports an authenticated passenger and driver ride from request through pay
         ->assertOk()
         ->assertJsonPath('activeRide', null);
     resetApiAuth();
-    $this->postJson("/api/corridas/{$rideId}/pagamento", [
-        'formaPagamento' => 'Pix',
-    ], $passengerHeaders)
-        ->assertOk()
-        ->assertJsonPath('testOnly', true)
-        ->assertJsonPath('pagamento.statusPagamento', 'Pago');
     $this->postJson("/api/corridas/{$rideId}/avaliacoes", [
         'nota' => 5,
         'comentario' => 'Ótimo atendimento.',
     ], $passengerHeaders)->assertCreated();
     resetApiAuth();
     $this->postJson("/api/corridas/{$rideId}/avaliacoes", [
+        'nota' => 4,
+    ], $passengerHeaders)->assertStatus(409);
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/avaliacoes", [
         'nota' => 5,
     ], $driverHeaders)->assertCreated();
-
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/denuncias", [
+        'motivo' => 'Conduta',
+        'descricao' => 'Exemplo para validar o fluxo.',
+    ], $passengerHeaders)->assertCreated();
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/denuncias", [
+        'motivo' => 'Outro',
+    ], $passengerHeaders)->assertStatus(409);
+    resetApiAuth();
+    $this->getJson('/api/denuncias/recebidas', $driverHeaders)
+        ->assertOk()->assertJsonPath('denuncias.0.motivo', 'Conduta');
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/denuncias", [
+        'motivo' => 'Seguranca',
+    ], $driverHeaders)->assertCreated();
+    resetApiAuth();
+    $this->getJson('/api/denuncias/recebidas', $passengerHeaders)
+        ->assertOk()->assertJsonPath('denuncias.0.reportadoPor', 'Motorista');
+    resetApiAuth();
+    $this->postJson("/api/corridas/{$rideId}/pagamento", [
+        'formaPagamento' => 'Pix',
+    ], $passengerHeaders)
+        ->assertOk()
+        ->assertJsonPath('testOnly', true)
+        ->assertJsonPath('pagamento.statusPagamento', 'Pago');
     resetApiAuth();
     $this->getJson('/api/passageiro/corridas', $passengerHeaders)
         ->assertOk()
@@ -186,6 +232,8 @@ it('supports an authenticated passenger and driver ride from request through pay
     resetApiAuth();
     $this->getJson('/api/app-data', $passengerHeaders)
         ->assertOk()
+        ->assertJsonPath('perfil.avaliacaoMedia', 5)
+        ->assertJsonPath('perfil.totalAvaliacoes', 1)
         ->assertJsonPath('pagamentos.0.corrida.corridaId', $rideId)
         ->assertJsonPath('pagamentos.0.pagamento.statusPagamento', 'Pago');
 
@@ -201,11 +249,80 @@ it('supports an authenticated passenger and driver ride from request through pay
     ], $passengerHeaders)->assertCreated();
     $cancelledRideId = $secondRide->json('corrida.corrida.corridaId');
     $this->postJson("/api/corridas/{$cancelledRideId}/cancelar", [], $passengerHeaders)
+        ->assertStatus(422);
+    $this->postJson("/api/corridas/{$cancelledRideId}/cancelar", [
+        'motivoCancelamento' => 'Mudança de planos.',
+    ], $passengerHeaders)
         ->assertOk()
-        ->assertJsonPath('corrida.corrida.status', 'Cancelada');
+        ->assertJsonPath('corrida.corrida.status', 'Cancelada')
+        ->assertJsonPath('corrida.corrida.motivoCancelamento', 'Mudança de planos.');
     $this->getJson('/api/corridas/ativa', $passengerHeaders)
         ->assertOk()
         ->assertJsonPath('activeRide', null);
+});
+
+it('lets a driver decline an offer without withdrawing it from other drivers', function () {
+    $passenger = $this->postJson('/api/passageiro/insert', passengerCredentials())->assertCreated();
+    $driverOne = $this->postJson('/api/motorista/insert', driverCredentials())->assertCreated();
+
+    $driverTwoData = driverCredentials();
+    $driverTwoData['nome'] = 'Carlos Segundo';
+    $driverTwoData['email'] = 'carlos.segundo@example.test';
+    $driverTwoData['cpf'] = '11144477735';
+    $driverTwoData['placa'] = 'XYZ9Z99';
+    $driverTwo = $this->postJson('/api/motorista/insert', $driverTwoData)->assertCreated();
+    DB::table('tbMotorista')->where('motoristaId', $driverOne->json('motorista.motoristaId'))->update(['statusMotorista' => 'Aprovado']);
+    DB::table('tbMotorista')->where('motoristaId', $driverTwo->json('motorista.motoristaId'))->update(['statusMotorista' => 'Aprovado']);
+
+    $ride = $this->postJson('/api/corridas', [
+        'origem' => 'Praça da Matriz', 'latitudeOrigem' => -23.5505, 'longitudeOrigem' => -46.6333,
+        'destino' => 'Rodoviária', 'latitudeDestino' => -23.535, 'longitudeDestino' => -46.6312,
+        'categoria' => 'Economico',
+    ], ['Authorization' => 'Bearer '.$passenger->json('token')])->assertCreated();
+    $rideId = $ride->json('corrida.corrida.corridaId');
+
+    $this->postJson("/api/corridas/{$rideId}/recusar", [], ['Authorization' => 'Bearer '.$driverOne->json('token')])
+        ->assertOk()
+        ->assertJsonPath('message', 'Solicitação recusada. Ela continuará disponível para outros motoristas.');
+    $this->getJson('/api/motorista/corridas/ofertas', ['Authorization' => 'Bearer '.$driverOne->json('token')])
+        ->assertOk()->assertExactJson([]);
+    $this->getJson('/api/motorista/corridas/ofertas', ['Authorization' => 'Bearer '.$driverTwo->json('token')])
+        ->assertOk()->assertJsonPath('0.corrida.corridaId', $rideId);
+    expect(DB::table('tbCorrida')->where('corridaId', $rideId)->value('status'))->toBe('Solicitada');
+
+    $this->postJson('/api/corridas', [
+        'origem' => 'Praça da Matriz', 'latitudeOrigem' => -23.5505, 'longitudeOrigem' => -46.6333,
+        'destino' => 'Shopping Jardins', 'latitudeDestino' => -23.5614, 'longitudeDestino' => -46.6559,
+        'categoria' => 'Economico',
+    ], ['Authorization' => 'Bearer '.$passenger->json('token')])->assertStatus(409);
+});
+
+it('creates a scheduled ride, exposes it to drivers, and synchronizes acceptance', function () {
+    $passenger = $this->postJson('/api/passageiro/insert', passengerCredentials())->assertCreated();
+    $driver = $this->postJson('/api/motorista/insert', driverCredentials())->assertCreated();
+    DB::table('tbMotorista')->where('motoristaId', $driver->json('motorista.motoristaId'))->update(['statusMotorista' => 'Aprovado']);
+    $passengerHeaders = ['Authorization' => 'Bearer '.$passenger->json('token')];
+    $driverHeaders = ['Authorization' => 'Bearer '.$driver->json('token')];
+
+    $request = $this->postJson('/api/corridas', [
+        'origem' => 'Praça da Matriz', 'latitudeOrigem' => -23.5505, 'longitudeOrigem' => -46.6333,
+        'destino' => 'Rodoviária', 'latitudeDestino' => -23.535, 'longitudeDestino' => -46.6312,
+        'categoria' => 'Economico', 'dataHora' => now()->addHour()->toIso8601String(),
+    ], $passengerHeaders)->assertCreated()
+        ->assertJsonPath('message', 'Corrida agendada.')
+        ->assertJsonPath('corrida.corrida.status', 'Solicitada')
+        ->assertJsonPath('corrida.agendamento.status', 'Agendada');
+    $rideId = $request->json('corrida.corrida.corridaId');
+
+    $this->getJson('/api/motorista/corridas/agendadas', $driverHeaders)
+        ->assertOk()->assertJsonPath('0.corrida.corridaId', $rideId);
+    $this->getJson('/api/motorista/corridas/ofertas', $driverHeaders)->assertOk()->assertExactJson([]);
+    $this->postJson("/api/corridas/{$rideId}/aceitar", [], $driverHeaders)
+        ->assertOk()->assertJsonPath('corrida.agendamento.status', 'Confirmada');
+    $this->getJson('/api/corridas/ativa', $passengerHeaders)
+        ->assertOk()->assertJsonPath('activeRide.corrida.status', 'Aceita');
+    $this->getJson('/api/corridas/ativa', $driverHeaders)
+        ->assertOk()->assertJsonPath('activeRide.corrida.status', 'Aceita');
 });
 
 it('rejects unauthenticated access and invalid trip input', function () {
@@ -240,7 +357,7 @@ it('requires an eleven digit CNH and keeps local driver registrations pending re
 
     $duplicateDriver = driverCredentials();
     $duplicateDriver['email'] = 'outro.motorista@example.test';
-    $duplicateDriver['cpf'] = '11122233344';
+    $duplicateDriver['cpf'] = '11144477735';
     $duplicateDriver['placa'] = 'DEF4G56';
     $this->postJson('/api/motorista/insert', $duplicateDriver)
         ->assertUnprocessable()
@@ -305,7 +422,7 @@ it('restores only active accounts and serves user data for the app cache', funct
 
     $deletedAccount = passengerCredentials();
     $deletedAccount['email'] = 'deleted@example.test';
-    $deletedAccount['cpf'] = '11122233344';
+    $deletedAccount['cpf'] = '11144477735';
     $deleted = $this->postJson('/api/passageiro/insert', $deletedAccount)->assertCreated();
     $deletedHeaders = ['Authorization' => 'Bearer '.$deleted->json('token')];
     resetApiAuth();
@@ -321,7 +438,7 @@ it('lets a passenger edit their account and deactivate it with password confirma
     $this->putJson('/api/account', [
         'nome' => 'Ana Editada',
         'email' => 'ana.editada@example.test',
-        'cpf' => '12345678901',
+        'cpf' => '52998224725',
         'numeroTelefone' => '11977776666',
         'logradouro' => 'Avenida Nova',
         'numero' => '25',
@@ -344,8 +461,10 @@ it('lets a passenger edit their account and deactivate it with password confirma
     $this->deleteJson('/api/account', ['senhaAtual' => 'senha-incorreta'], $headers)->assertUnprocessable();
     $this->deleteJson('/api/account', ['senhaAtual' => 'senha-nova-segura'], $headers)
         ->assertOk()
-        ->assertJsonPath('message', 'Conta desativada.');
+        ->assertJsonPath('message', 'Conta excluída. Dados pessoais foram removidos ou pseudonimizados; alguns dados operacionais das corridas foram preservados.');
     expect(UserModel::findOrFail($userId)->statusConta)->toBe('Inativa')
+        ->and(UserModel::findOrFail($userId)->nome)->toBe('Conta removida')
+        ->and(UserModel::findOrFail($userId)->email)->toBe('removida-'.$userId.'@interiorgo.invalid')
         ->and(PassageiroModel::where('userId', $userId)->value('status'))->toBe('Inativo')
         ->and(UserModel::findOrFail($userId)->tokens()->count())->toBe(0);
 
@@ -354,6 +473,23 @@ it('lets a passenger edit their account and deactivate it with password confirma
         'email' => 'ana.editada@example.test',
         'senha' => 'senha-nova-segura',
     ])->assertUnprocessable();
+});
+
+it('refuses account deletion while the passenger has an active ride', function () {
+    $registration = $this->postJson('/api/passageiro/insert', passengerCredentials())->assertCreated();
+    $headers = ['Authorization' => 'Bearer '.$registration->json('token')];
+    $passengerId = PassageiroModel::where('userId', $registration->json('user.userId'))->value('passageiroId');
+
+    DB::table('tbCorrida')->insert([
+        'passageiroId' => $passengerId,
+        'origem' => 'Origem teste', 'latitudeOrigem' => -23.55, 'longitudeOrigem' => -46.63,
+        'destino' => 'Destino teste', 'latitudeDestino' => -23.56, 'longitudeDestino' => -46.64,
+        'status' => 'EmAndamento', 'dataSolicitacao' => now(),
+    ]);
+
+    $this->deleteJson('/api/account', ['senhaAtual' => passengerCredentials()['senha']], $headers)->assertStatus(409);
+    expect(UserModel::findOrFail($registration->json('user.userId'))->statusConta)->toBe('Ativa')
+        ->and(UserModel::findOrFail($registration->json('user.userId'))->tokens()->count())->toBe(1);
 });
 
 it('removes a passenger profile photo when the account is deactivated', function () {
@@ -371,7 +507,7 @@ it('removes a passenger profile photo when the account is deactivated', function
 
     $this->deleteJson('/api/account', ['senhaAtual' => passengerCredentials()['senha']], $headers)
         ->assertOk()
-        ->assertJsonPath('message', 'Conta desativada. A foto de perfil foi removida; registros associados às corridas foram mantidos.');
+        ->assertJsonPath('message', 'Conta excluída. Dados pessoais foram removidos ou pseudonimizados; alguns dados operacionais das corridas foram preservados.');
 
     expect($user->fresh()->fotoPerfil)->toBeNull()
         ->and($user->fresh()->statusConta)->toBe('Inativa');

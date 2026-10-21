@@ -3,8 +3,9 @@ import React from 'react';
 
 import RideMap from '../components/RideMap';
 import { Button, Card, Location, Page, s } from '../ui';
+import RideCancellation from '../components/RideCancellation';
 
-export default function RideAccepted({ go, session }) {
+export default function RideAccepted({ go, session, setSession }) {
   const ride = session.activeRide?.corrida;
   return (
     <Page title="Corrida aceita" go={go} back="Home">
@@ -18,6 +19,7 @@ export default function RideAccepted({ go, session }) {
             <Text style={{ fontWeight: '800' }}>R$ {Number(ride.valorCorrida).toFixed(2)}</Text>
           </Card>
           <Button onPress={() => go('StartRide')}>Ir para o embarque</Button>
+          <RideCancellation rideId={ride.corridaId} onCancelled={(cancelledRide) => { setSession((current) => ({ ...current, activeRide: cancelledRide })); go('Home'); }} />
         </>
       ) : <Text style={s.muted}>Não há corrida ativa.</Text>}
     </Page>

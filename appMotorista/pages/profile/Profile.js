@@ -1,13 +1,18 @@
 import { ThemedText as Text } from '../ui';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { profilePhotoUrl, updateStoredSession, uploadProfilePhoto } from '../api';
+import { api, profilePhotoUrl, updateStoredSession, uploadProfilePhoto } from '../api';
 import { Avatar, Button, Card, Page, s } from '../ui';
 
 export default function Profile({ go, session, setSession, onLogout }) {
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    api.get('/app-data').then(({ data }) => setProfile(data.perfil)).catch((requestError) => setError(requestError.message));
+  }, []);
 
   async function changePhoto(source) {
     setError('');
@@ -56,7 +61,7 @@ export default function Profile({ go, session, setSession, onLogout }) {
             {session.user?.email || ''}
           </Text>
         </Text>
-        <Text style={{ color: '#fff' }}>★ {session.motorista?.avaliacaoMedia ?? '—'}</Text>
+        <Text style={{ color: '#fff' }}>★ {Number(profile?.avaliacaoMedia ?? session.motorista?.avaliacaoMedia ?? 0).toFixed(1)}</Text>
       </Card>
       {error ? <Text style={{ color: '#d94b45' }}>{error}</Text> : null}
       <Button light disabled={uploading} onPress={() => changePhoto('camera')}>
@@ -66,6 +71,7 @@ export default function Profile({ go, session, setSession, onLogout }) {
       <Card><Text style={{ fontWeight: '700' }}>CNH: {session.motorista?.cnh || 'Não informada'}</Text></Card>
       <Card><Text style={{ fontWeight: '700' }}>Status: {session.motorista?.statusMotorista || 'Indisponível'}</Text></Card>
       <Button light onPress={() => go('Account')}>Editar ou desativar minha conta</Button>
+      <Button light onPress={() => go('Reports')}>Denúncias recebidas</Button>
       <Button danger onPress={onLogout}>Sair da conta</Button>
     </Page>
   );
