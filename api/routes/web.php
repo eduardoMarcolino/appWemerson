@@ -36,6 +36,7 @@ Route::prefix('admin')->name('admin.')->middleware(EnsureAdministrator::class)->
 
     Route::prefix('contas')->name('accounts.')->middleware(EnsureMasterAdministrator::class)->group(function (): void {
         Route::get('/', [AdminController::class, 'accounts'])->name('index');
+        Route::get('/{userId}', [AdminController::class, 'showAccount'])->whereNumber('userId')->name('show');
         Route::get('/{userId}/editar', [AdminController::class, 'editAccount'])->whereNumber('userId')->name('edit');
         Route::put('/{userId}', [AdminController::class, 'updateAccount'])->whereNumber('userId')->name('update');
     });

@@ -103,6 +103,14 @@ class MotoristaController extends Controller
             return [$user, $motorista];
         });
 
+        if ($motorista->statusMotorista !== 'Aprovado') {
+            return response()->json([
+                'message' => 'Cadastro enviado para análise. Você poderá entrar no app após a aprovação do administrador.',
+                'user' => UserSummaryResource::make($user)->resolve($request),
+                'motorista' => DriverAccountResource::make($motorista->load('veiculos'))->resolve($request),
+            ], 202);
+        }
+
         $issuedToken = $tokenIssuer->issue($user, 'app-motorista');
 
         return response()->json([
@@ -129,6 +137,9 @@ class MotoristaController extends Controller
         $motorista = MotoristaModel::where('userId', $user->userId)->first();
         if (! $motorista || $motorista->statusMotorista === 'Bloqueado') {
             throw ValidationException::withMessages(['email' => 'Conta de motorista indisponível.']);
+        }
+        if ($motorista->statusMotorista !== 'Aprovado') {
+            throw ValidationException::withMessages(['email' => 'Seu cadastro está aguardando aprovação do administrador.']);
         }
 
         $issuedToken = $tokenIssuer->issue($user, 'app-motorista');

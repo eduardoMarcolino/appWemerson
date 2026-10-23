@@ -38,7 +38,7 @@ class SessionController extends Controller
         if ($user->statusConta !== 'Ativa'
             || (! $passageiro && ! $motorista)
             || ($passageiro && $passageiro->status !== 'Ativo')
-            || ($motorista && $motorista->statusMotorista === 'Bloqueado')) {
+            || ($motorista && $motorista->statusMotorista !== 'Aprovado')) {
             $request->user()->currentAccessToken()?->delete();
             abort(403, 'Esta conta não está mais ativa.');
         }

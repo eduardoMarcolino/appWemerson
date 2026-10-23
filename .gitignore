@@ -1,1 +1,15 @@
 node_modules/
+
+# Configuracoes locais dos aplicativos Expo.
+appUser/.env
+appUser/.env.local
+appMotorista/.env
+appMotorista/.env.local
+
+# Arquivos Firebase usados apenas neste computador durante a demonstracao.
+appUser/google-services.json
+appMotorista/google-services.json
+appUser/android/keystore.properties
+appMotorista/android/keystore.properties
+appUser/android/*.jks
+appMotorista/android/*.jks

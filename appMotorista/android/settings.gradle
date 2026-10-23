@@ -31,7 +31,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 }
 expoAutolinking.useExpoModules()
 
-rootProject.name = 'appmotorista'
+rootProject.name = 'Interior Runner'
 
 expoAutolinking.useExpoVersionCatalog()
 

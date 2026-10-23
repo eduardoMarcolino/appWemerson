@@ -4,7 +4,7 @@
 
 @section('content')
 <h1>Editar conta</h1>
-<p class="intro muted">Atualize os dados de {{ $user->nome }}. Ao desativar a conta, os tokens ativos serão revogados.</p>
+<p class="intro muted">Atualize os dados de {{ $user->nome }}. CPF e CNH ficam mascarados nesta tela. Ao desativar a conta, os tokens ativos serão revogados.</p>
 <section class="panel form-panel">
     <form method="POST" action="{{ route('admin.accounts.update', $user->userId) }}">
         @csrf
@@ -13,8 +13,7 @@
         <input id="nome" name="nome" value="{{ old('nome', $user->nome) }}" required maxlength="100">
         <label for="email">E-mail</label>
         <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required maxlength="150">
-        <label for="cpf">CPF (11 dígitos)</label>
-        <input id="cpf" name="cpf" inputmode="numeric" value="{{ old('cpf', $user->cpf) }}" required pattern="[0-9]{11}" maxlength="11">
+        <p><strong>CPF:</strong> {{ $maskedCpf }}</p>
         <label for="statusConta">Status da conta</label>
         <select id="statusConta" name="statusConta" required>
             @foreach (['Ativa', 'Inativa', 'Bloqueada'] as $status)
@@ -26,7 +25,7 @@
             <p>Confira a CNH e os documentos originais do veículo diretamente com o motorista antes de aprovar. O sistema não armazena cópias desses documentos.</p>
             <dl>
                 <dt>CNH informada</dt>
-                <dd>{{ $user->motorista->cnh }}</dd>
+                <dd>{{ $maskedCnh }}</dd>
                 <dt>Validade da CNH</dt>
                 <dd>{{ $user->motorista->validadeCNH }}</dd>
                 @foreach ($user->motorista->veiculos as $veiculo)

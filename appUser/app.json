@@ -1,7 +1,11 @@
 {
+  "name": "Interior Go",
+  "slug": "interior-go",
+  "version": "1.0.0",
   "userInterfaceStyle": "automatic",
   "android": {
-    "package": "com.eduardocherubim.appuser"
+    "package": "com.eduardocherubim.appuser",
+    "versionCode": 1
   },
   "plugins": [
     [

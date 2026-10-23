@@ -29,7 +29,7 @@ class AppDataController extends Controller
         $driver = MotoristaModel::where('userId', $user->userId)->first();
         if ($user->statusConta !== 'Ativa'
             || (! $passenger && ! $driver)
-            || ($driver && $driver->statusMotorista === 'Bloqueado')) {
+            || ($driver && $driver->statusMotorista !== 'Aprovado')) {
             $user->currentAccessToken()?->delete();
             abort(401, 'Esta conta não está mais ativa.');
         }

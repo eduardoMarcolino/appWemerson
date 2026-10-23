@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, useWindowDimensions, View } from 'react-native';
+import { formatDateInput } from './utils/dateInput';
 
 export const green = '#087a50';
 export const red = '#d94b45';
@@ -40,7 +41,6 @@ function createStyles(scheme) {
     titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 2 },
     back: { fontSize: 34, lineHeight: 30, color: colors.text },
     title: { flex: 1, color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center' },
-    menu: { color: scheme === 'dark' ? '#92d3b3' : green, fontSize: 24 },
     button: { backgroundColor: green, borderRadius: 10, alignItems: 'center', paddingVertical: 15 },
     buttonText: { color: '#fff', fontWeight: '800' },
     lightButton: { backgroundColor: colors.lightButton },
@@ -84,6 +84,7 @@ export function setColorScheme(scheme) {
 
 function formatFieldValue(value, label) {
   const name = (label || '').toLowerCase();
+  if (name.includes('data') || name.includes('validade')) return formatDateInput(value);
   if (!name.includes('cpf') && !name.includes('cep') && !name.includes('telefone')) return value;
   const rawValue = String(value || '');
   if (name.includes('cpf') && /[a-z@]/i.test(rawValue)) return rawValue;
@@ -127,7 +128,7 @@ export function Field({
   return <View style={s.fieldWrap}><Text style={s.fieldLabel}>{visibleLabel}</Text><TextInput accessibilityLabel={visibleLabel} accessibilityHint={placeholder} value={formatFieldValue(value, visibleLabel)} onChangeText={(text) => onChangeText?.(formatFieldValue(text, visibleLabel))} placeholder={placeholder} placeholderTextColor={colors.placeholder} secureTextEntry={secureTextEntry} keyboardType={keyboardType} multiline={multiline} maxLength={maxLength} onSubmitEditing={onSubmitEditing} returnKeyType={returnKeyType} style={[s.field, multiline && { minHeight: 100, textAlignVertical: 'top' }, style]} /></View>;
 }
 
-export function Page({ children, title, go, back = 'Home', nav, scroll = true, showMenu = true }) {
+export function Page({ children, title, go, back = 'Home', nav, scroll = true }) {
   useColorScheme();
   const { width } = useWindowDimensions();
   const horizontalPadding = width < 360 ? 14 : width > 720 ? 28 : 18;
@@ -140,11 +141,6 @@ export function Page({ children, title, go, back = 'Home', nav, scroll = true, s
               <Text style={s.back}>‹</Text>
             </Pressable>
             <Text numberOfLines={2} style={s.title}>{title}</Text>
-            {showMenu ? (
-              <Pressable onPress={() => go('SideMenu')} hitSlop={10}>
-                <Text style={s.menu}>☰</Text>
-              </Pressable>
-            ) : null}
           </View>
         )}
         {children}

@@ -1,54 +1,47 @@
-const { withAndroidManifest } = require('expo/config-plugins');
+const fs = require('node:fs');
+const path = require('node:path');
 
 module.exports = ({ config }) => {
   const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
   const googleServicesFile = process.env.GOOGLE_SERVICES_FILE;
-  const isAndroidEasBuild = process.env.EAS_BUILD && process.env.EAS_BUILD_PLATFORM === 'android';
+  const googleServicesPath = googleServicesFile
+    ? path.resolve(__dirname, googleServicesFile)
+    : null;
+  const hasGoogleServicesFile = Boolean(googleServicesPath && fs.existsSync(googleServicesPath));
+  const isAndroidEasBuild =
+    process.env.EAS_BUILD === '1' && process.env.EAS_BUILD_PLATFORM === 'android';
+  const isProductionBuild = process.env.EAS_BUILD_PROFILE === 'production';
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-  if (isAndroidEasBuild && !googleMapsApiKey) {
-    throw new Error('Set GOOGLE_MAPS_API_KEY in the EAS environment before building the Android app.');
+  if (googleServicesFile && !hasGoogleServicesFile) {
+    console.warn(
+      `Firebase config nao encontrado em ${googleServicesPath}; prebuild continuara sem Google Services/FCM.`,
+    );
   }
 
-  const plugins = [
-    ...(config.plugins || []),
-    'expo-location',
-  ];
+  if (isAndroidEasBuild && !googleMapsApiKey) {
+    throw new Error('Defina GOOGLE_MAPS_API_KEY no ambiente EAS antes do build Android.');
+  }
 
-  const appConfig = {
+  if (isAndroidEasBuild && isProductionBuild && !/^https:\/\/.+/.test(apiUrl || '')) {
+    throw new Error(
+      'O perfil production exige EXPO_PUBLIC_API_URL com uma URL HTTPS permanente da API.',
+    );
+  }
+
+  return {
     ...config,
     android: {
       ...config.android,
-      ...(googleServicesFile ? { googleServicesFile } : {}),
+      ...(hasGoogleServicesFile ? { googleServicesFile } : {}),
     },
-    plugins,
+    plugins: [
+      ...(config.plugins || []),
+      'expo-location',
+      './plugins/withLocalAndroidSigning',
+      ...(googleMapsApiKey
+        ? [['react-native-maps', { androidGoogleMapsApiKey: googleMapsApiKey }]]
+        : []),
+    ],
   };
-
-  return withAndroidManifest(appConfig, (modConfig) => {
-    const application = modConfig.modResults.manifest.application?.[0];
-    if (!application) {
-      throw new Error('Android manifest is missing the application element.');
-    }
-
-    application['meta-data'] ||= [];
-    let mapsMetadata = application['meta-data'].find(
-      (metadata) => metadata.$?.['android:name'] === 'com.google.android.geo.API_KEY',
-    );
-
-    if (!mapsMetadata) {
-      mapsMetadata = { $: { 'android:name': 'com.google.android.geo.API_KEY' } };
-      application['meta-data'].push(mapsMetadata);
-    }
-
-    if (googleMapsApiKey) {
-      mapsMetadata.$['android:value'] = googleMapsApiKey;
-    } else {
-      mapsMetadata.$['android:value'] ||= '${googleMapsApiKey}';
-    }
-
-    if (process.env.EAS_BUILD_PROFILE === 'preview') {
-      application.$['android:usesCleartextTraffic'] = 'true';
-    }
-
-    return modConfig;
-  });
 };

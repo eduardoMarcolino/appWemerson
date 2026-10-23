@@ -1,0 +1,58 @@
+JvmtiExport can_access_local_variables 0
+JvmtiExport can_hotswap_or_post_breakpoint 0
+JvmtiExport can_post_on_exceptions 0
+# 1077 ciObject found
+instanceKlass com/intellij/codeInsight/BaseExternalAnnotationsManager
+ciInstanceKlass java/lang/Cloneable 1 1 7 100 1 100 1 1 1
+instanceKlass org/jetbrains/kotlin/fir/resolve/calls/FirCallResolver$WhenMappings
+instanceKlass org/jetbrains/kotlin/renderer/KeywordStringsGenerated
+instanceKlass org/jetbrains/kotlin/renderer/RenderingUtilsKt
+instanceKlass org/jetbrains/kotlin/fir/declarations/builder/FirOuterClassTypeParameterRefBuilder
+instanceKlass com/intellij/codeInsight/BaseExternalAnnotationsManager$1
+instanceKlass org/jetbrains/kotlin/light/classes/symbol/annotations/AbstractClassAdditionalAnnotationsProvider
+instanceKlass org/jetbrains/kotlin/fir/resolve/transformers/DesignationState$Companion
+instanceKlass org/jetbrains/kotlin/fir/resolve/transformers/DesignationState
+instanceKlass org/jetbrains/kotlin/fir/resolve/transformers/WhenOnBooleanExhaustivenessChecker$Flags
+instanceKlass org/jetbrains/kotlin/light/classes/symbol/classes/SymbolLightClassForInterface$getOwnMethods$1$1$visibleDeclarations$1
+instanceKlass org/jetbrains/kotlin/light/classes/symbol/classes/SymbolLightClassForInterface$getOwnMethods$$inlined$cachedValue$1
+instanceKlass org/jetbrains/kotlin/light/classes/symbol/classes/SymbolLightClassForInterfaceOrAnnotationClass$getOwnFields$$inlined$cachedValue$1
+instanceKlass org/jetbrains/uast/UUnknownExpression
+instanceKlass com/intellij/util/containers/CollectionFactory$1
+instanceKlass com/intellij/util/containers/FastUtilHashingStrategies$SerializableHashStrategy
+instanceKlass com/intellij/psi/impl/InheritanceImplUtil
+instanceKlass org/jetbrains/kotlin/analysis/api/types/KaIntersectionType
+instanceKlass org/jetbrains/kotlin/fir/scopes/impl/FirTypeIntersectionScope$Companion
+instanceKlass org/jetbrains/kotlin/fir/resolve/TypeExpansionUtilsKt$createParametersSubstitutor$1$WhenMappings
+instanceKlass org/jetbrains/kotlin/fir/scopes/impl/FirNestedClassifierScopeKt
+instanceKlass com/intellij/psi/util/CachedValuesManager$1
+instanceKlass com/intellij/psi/impl/source/codeStyle/CodeEditUtil
+instanceKlass org/jetbrains/kotlin/asJava/SyntheticElementUtilsKt
+instanceKlass org/jetbrains/kotlin/fir/extensions/FirTypeAttributeExtensionKt
+instanceKlass org/jetbrains/kotlin/load/java/structure/impl/JavaLiteralAnnotationArgumentImpl
+instanceKlass com/google/common/collect/Iterators$ConcatenatedIterator
+instanceKlass com/google/common/base/Optional
+instanceKlass com/google/common/collect/FluentIterable
+instanceKlass com/google/common/collect/Iterables
+instanceKlass com/android/tools/lint/detector/api/ExtensionSdk$Companion
+instanceKlass com/android/tools/lint/detector/api/ExtensionSdk
+instanceKlass com/intellij/codeInsight/FileModificationService
+instanceKlass com/intellij/psi/util/PsiLiteralUtil
+instanceKlass com/intellij/psi/impl/source/tree/java/MethodReferenceResolver
+instanceKlass com/intellij/psi/impl/source/PsiEnumConstantImpl$MyReference
+instanceKlass com/intellij/psi/scope/PatternResolveState$1
+instanceKlass com/intellij/psi/impl/ScopedClassHierarchy$2
+instanceKlass com/intellij/psi/impl/TypeCorrector$CorrectedResolveResult
+instanceKlass com/intellij/BundleBase
+instanceKlass com/intellij/BundleBaseKt
+instanceKlass com/intellij/AbstractBundleKt
+instanceKlass com/intellij/DynamicBundle$DynamicBundleInternal
+instanceKlass com/intellij/l10n/LocalizationOrder$Companion
+instanceKlass com/intellij/openapi/util/io/NullAppendable
+instanceKlass com/intellij/l10n/LocalizationStateService
+instanceKlass com/intellij/l10n/LocalizationUtil
+instanceKlass com/intellij/util/DefaultBundleService
+instanceKlass com/intellij/psi/impl/source/resolve/reference/impl/PsiPolyVariantCachingReference$MyResolver
+instanceKlass com/intellij/psi/impl/source/resolve/reference/impl/PsiPolyVariantCachingReference
+instanceKlass org/jetbrains/kotlin/fir/expressions/builder/FirComponentCallBuilder
+instanceKlass org/jetbrains/kotlin/fir/builder/DestructuringKt
+instanceKlass org/jetbrains/kotlin/analysis/low/level/aT 12 10 com/intellij/openapi/fileTypes/FileTypeExtension allForFileType (Lcom/intellij/openapi/fileTypes/FileType;)Ljava/util/List; 11 106 com/intellij/psi/SingleRootFileViewProvider <init> (Lcom/intellij/psi/PsiManager;Lcom/intellij/openapi/vfs/VirtualFile;ZLcom/intellij/openapi/fileTypes/FileType;)V 12 32 com/intellij/psi/impl/PsiManagerImpl getProject ()Lcom/intellij/openapi/project/Project; 12 37 com/intellij/psi/SingleRootFileViewProvider calcBaseLanguage (Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/openapi/project/Project;Lcom/intellij/openapi/fileTypes/FileType;)Lcom/intellij/lang/Language; 13 41 com/intellij/psi/SingleRootFileViewProvider isTooLargeForIntelligence (Lcom/intellij/openapi/vfs/VirtualFile;)Z 6 281 java/lang/invoke/Invokers$Holder linkToTargetMethod (Ljava/lang/Object;)Ljava/lang/Object; 7 4 java/lang/invoke/LambdaForm$MH+0x000001c301000400 invoke (Ljava/lang/Object;)Ljava/lang/Object;

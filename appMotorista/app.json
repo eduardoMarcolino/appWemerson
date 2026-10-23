@@ -1,7 +1,11 @@
 {
+  "name": "Interior Runner",
+  "slug": "interior-runner",
+  "version": "1.0.0",
   "userInterfaceStyle": "automatic",
   "android": {
-    "package": "com.eduardocherubim.appmotorista"
+    "package": "com.eduardocherubim.appmotorista",
+    "versionCode": 1
   },
   "plugins": [
     [

@@ -22,7 +22,6 @@ import Schedule from './pages/schedule/Schedule';
 import Performance from './pages/performance/Performance';
 import Profile from './pages/profile/Profile';
 import Account from './pages/account/Account';
-import SideMenu from './pages/sidemenu/SideMenu';
 import ActiveRideSheet from './pages/components/ActiveRideSheet';
 import useRideLocationShare from './pages/utils/useRideLocationShare';
 import usePushNotifications from './pages/utils/usePushNotifications';
@@ -30,7 +29,7 @@ import { getThemeColors, setColorScheme } from './pages/ui';
 
 const screens = {
   Login, ForgotPassword, ResetPassword, RegisterDriver, Home, NewRequest, RideDetails, RideAccepted, StartRide, Trip, FinishRide,
-  RatePassenger, RideComplete, Earnings, History, Schedule, Performance, Profile, Account, SideMenu, Reports: ReportsReceived,
+  RatePassenger, RideComplete, Earnings, History, Schedule, Performance, Profile, Account, Reports: ReportsReceived,
 };
 
 export default function App() {

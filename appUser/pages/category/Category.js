@@ -30,6 +30,18 @@ export default function Category({ go, session, setSession }) {
       setSession((current) => ({ ...current, tripDraft: draft, activeRide: data.corrida }));
       go('SearchingDriver');
     } catch (requestError) {
+      if (requestError.status === 409) {
+        try {
+          const { data } = await api.getLive('/corridas/ativa');
+          if (data.activeRide) {
+            setSession((current) => ({ ...current, tripDraft: draft, activeRide: data.activeRide }));
+            go('SearchingDriver');
+            return;
+          }
+        } catch (_lookupError) {
+          // Mantém a mensagem original se não for possível recuperar a corrida ativa.
+        }
+      }
       setError(requestError.message);
     } finally {
       setLoading(false);

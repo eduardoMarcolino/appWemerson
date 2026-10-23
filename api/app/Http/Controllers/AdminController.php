@@ -13,7 +13,9 @@ use App\Rules\ValidCpf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -35,7 +37,12 @@ class AdminController extends Controller
     public function accounts(Request $request): View
     {
         $search = trim((string) $request->query('q', ''));
-        $role = $request->query('tipo');
+        $role = in_array($request->query('tipo'), ['passageiro', 'motorista'], true)
+            ? $request->query('tipo')
+            : '';
+        $status = in_array($request->query('status'), ['Ativa', 'Inativa', 'Bloqueada'], true)
+            ? $request->query('status')
+            : '';
 
         $accounts = UserModel::query()
             ->with(['passageiro', 'motorista'])
@@ -44,18 +51,37 @@ class AdminController extends Controller
             })
             ->when($role === 'passageiro', fn (Builder $query) => $query->whereHas('passageiro'))
             ->when($role === 'motorista', fn (Builder $query) => $query->whereHas('motorista'))
+            ->when($status !== '', fn (Builder $query) => $query->where('statusConta', $status))
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $query) use ($search): void {
                     $query->where('nome', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('cpf', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%");
                 });
             })
             ->orderBy('nome')
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.accounts.index', compact('accounts', 'search', 'role'));
+        return view('admin.accounts.index', compact('accounts', 'search', 'role', 'status'));
+    }
+
+    public function showAccount(Request $request, int $userId): View
+    {
+        $user = UserModel::with(['passageiro', 'motorista', 'telefones'])->findOrFail($userId);
+        abort_unless($user->passageiro || $user->motorista, Response::HTTP_NOT_FOUND);
+
+        $administrator = $request->attributes->get('admin_user');
+        Log::info('admin.account.profile_viewed', [
+            'administrator_user_id' => $administrator?->userId,
+            'viewed_user_id' => $user->userId,
+            'viewed_at' => now()->toIso8601String(),
+        ]);
+
+        $registeredAt = $user->dataCadastro
+            ? Carbon::parse($user->dataCadastro)->format('d/m/Y H:i')
+            : '—';
+
+        return view('admin.accounts.show', compact('user', 'registeredAt'));
     }
 
     public function editAccount(int $userId): View
@@ -63,7 +89,10 @@ class AdminController extends Controller
         $user = UserModel::with(['passageiro', 'motorista.veiculos'])->findOrFail($userId);
         abort_unless($user->passageiro || $user->motorista, Response::HTTP_NOT_FOUND);
 
-        return view('admin.accounts.edit', compact('user'));
+        $maskedCpf = $this->maskDocument($user->cpf);
+        $maskedCnh = $user->motorista ? $this->maskDocument($user->motorista->cnh) : null;
+
+        return view('admin.accounts.edit', compact('user', 'maskedCpf', 'maskedCnh'));
     }
 
     public function updateAccount(Request $request, int $userId): RedirectResponse
@@ -91,7 +120,7 @@ class AdminController extends Controller
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:3', 'max:100'],
             'email' => ['required', 'email', 'max:150', Rule::unique('tbUser', 'email')->ignore($user->userId, 'userId')],
-            'cpf' => ['required', 'digits:11', new ValidCpf, Rule::unique('tbUser', 'cpf')->ignore($user->userId, 'userId')],
+            'cpf' => ['sometimes', 'required', 'digits:11', new ValidCpf, Rule::unique('tbUser', 'cpf')->ignore($user->userId, 'userId')],
             'statusConta' => ['required', Rule::in(['Ativa', 'Inativa', 'Bloqueada'])],
             'statusMotorista' => [
                 Rule::requiredIf($user->motorista !== null),
@@ -109,12 +138,15 @@ class AdminController extends Controller
         ]);
 
         DB::transaction(function () use ($data, $user): void {
-            $user->fill([
+            $attributes = [
                 'nome' => $data['nome'],
                 'email' => mb_strtolower($data['email']),
-                'cpf' => $data['cpf'],
                 'statusConta' => $data['statusConta'],
-            ])->save();
+            ];
+            if (array_key_exists('cpf', $data)) {
+                $attributes['cpf'] = $data['cpf'];
+            }
+            $user->fill($attributes)->save();
 
             if ($user->motorista && isset($data['statusMotorista'])) {
                 $user->motorista->update(['statusMotorista' => $data['statusMotorista']]);
@@ -176,12 +208,32 @@ class AdminController extends Controller
 
     private function validateEvent(Request $request): array
     {
+        foreach (['dataInicio', 'dataFim'] as $field) {
+            $value = trim((string) $request->input($field, ''));
+            foreach ([
+                ['!d/m/Y H:i', 'd/m/Y H:i'],
+                ['!Y-m-d\\TH:i', 'Y-m-d\\TH:i'],
+                ['!Y-m-d H:i:s', 'Y-m-d H:i:s'],
+                ['!Y-m-d\\TH:i:s', 'Y-m-d\\TH:i:s'],
+            ] as [$inputFormat, $roundTripFormat]) {
+                try {
+                    $date = Carbon::createFromFormat($inputFormat, $value);
+                    if ($date && $date->format($roundTripFormat) === $value) {
+                        $request->merge([$field => $date->format('Y-m-d H:i:s')]);
+                        break;
+                    }
+                } catch (\Throwable) {
+                    // Tenta o próximo formato aceito; a validação abaixo trata o valor inválido.
+                }
+            }
+        }
+
         return $request->validate([
             'nome' => ['required', 'string', 'max:150'],
             'descricao' => ['nullable', 'string', 'max:255'],
             'local' => ['required', 'string', 'max:255'],
-            'dataInicio' => ['required', 'date'],
-            'dataFim' => ['required', 'date', 'after:dataInicio'],
+            'dataInicio' => ['required', 'date_format:Y-m-d H:i:s'],
+            'dataFim' => ['required', 'date_format:Y-m-d H:i:s', 'after:dataInicio'],
             'categoria' => ['required', 'string', 'max:100'],
             'cidade' => ['required', 'string', 'max:100'],
         ]);
@@ -201,5 +253,15 @@ class AdminController extends Controller
         abort_unless($user instanceof UserModel && $user->administrador instanceof admModel, Response::HTTP_FORBIDDEN);
 
         return $user->administrador;
+    }
+
+    private function maskDocument(?string $document): string
+    {
+        $digits = preg_replace('/\D/', '', (string) $document);
+        if ($digits === '') {
+            return 'Não informado';
+        }
+
+        return str_repeat('•', max(0, strlen($digits) - 2)).substr($digits, -2);
     }
 }

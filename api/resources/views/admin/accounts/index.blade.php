@@ -6,11 +6,17 @@
 <h1>Contas</h1>
 <p class="intro muted">Edite os dados, ative ou desative contas e revise o status dos motoristas.</p>
 <form class="filters" method="GET" action="{{ route('admin.accounts.index') }}">
-    <input name="q" value="{{ $search }}" placeholder="Buscar por nome, e-mail ou CPF">
+    <input name="q" value="{{ $search }}" placeholder="Buscar por nome ou e-mail">
     <select name="tipo" aria-label="Filtrar tipo de conta">
         <option value="">Todos os tipos</option>
         <option value="passageiro" @selected($role === 'passageiro')>Passageiros</option>
         <option value="motorista" @selected($role === 'motorista')>Motoristas</option>
+    </select>
+    <select name="status" aria-label="Filtrar status da conta">
+        <option value="">Todos os status</option>
+        @foreach (['Ativa', 'Inativa', 'Bloqueada'] as $accountStatus)
+            <option value="{{ $accountStatus }}" @selected($status === $accountStatus)>{{ $accountStatus }}</option>
+        @endforeach
     </select>
     <button class="button" type="submit">Filtrar</button>
 </form>
@@ -28,7 +34,7 @@
                 <td>{{ $account->email }}</td>
                 <td><span class="badge {{ $account->statusConta === 'Ativa' ? 'good' : 'bad' }}">{{ $account->statusConta }}</span></td>
                 <td>{{ $account->motorista?->statusMotorista ?? '—' }}</td>
-                <td><a class="button small secondary" href="{{ route('admin.accounts.edit', $account->userId) }}">Editar</a></td>
+                <td><a class="button small secondary" href="{{ route('admin.accounts.show', $account->userId) }}">Ver perfil</a></td>
             </tr>
         @empty
             <tr><td colspan="6" class="muted">Nenhuma conta encontrada.</td></tr>

@@ -94,7 +94,6 @@ export default function Home({ go, session, online, setOnline }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ backgroundColor: '#075c3e', padding: 20, paddingTop: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Pressable onPress={() => go('SideMenu')}><Text style={{ color: '#fff', fontSize: 23 }}>☰</Text></Pressable>
         <Text numberOfLines={1} style={{ flex: 1, color: '#fff', fontSize: width < 360 ? 16 : 19, fontWeight: '800', textAlign: 'center', marginHorizontal: 8 }}>Olá, {session.user?.nome || 'motorista'}!</Text>
         <Switch value={online} onValueChange={toggleOnline} />
       </View>

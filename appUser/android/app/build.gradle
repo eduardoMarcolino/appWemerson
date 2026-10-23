@@ -81,6 +81,13 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// InteriorGo: assinatura local configurada por config plugin
+def interiorGoKeystorePropertiesFile = rootProject.file('keystore.properties')
+def interiorGoKeystoreProperties = new Properties()
+if (interiorGoKeystorePropertiesFile.exists()) {
+    interiorGoKeystoreProperties.load(new FileInputStream(interiorGoKeystorePropertiesFile))
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -98,6 +105,14 @@ android {
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {
+        release {
+            if (interiorGoKeystorePropertiesFile.exists()) {
+                storeFile file(interiorGoKeystoreProperties['storeFile'])
+                storePassword interiorGoKeystoreProperties['storePassword']
+                keyAlias interiorGoKeystoreProperties['keyAlias']
+                keyPassword interiorGoKeystoreProperties['keyPassword']
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -112,7 +127,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig interiorGoKeystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

@@ -3,9 +3,11 @@
 use App\Models\admModel;
 use App\Models\EventoModel;
 use App\Models\MotoristaModel;
+use App\Models\PassageiroModel;
 use App\Models\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 uses(RefreshDatabase::class);
 
@@ -73,6 +75,52 @@ it('allows only Master administrators to manage customer accounts', function () 
         'senha' => 'senha-master-segura',
     ])->assertRedirect('/admin');
     $this->get('/admin/contas')->assertOk()->assertSee('Contas');
+});
+
+it('restricts account profiles to Master administrators and audits profile views without exposing documents', function () {
+    $passenger = UserModel::create([
+        'nome' => 'Passageira Exemplo',
+        'email' => 'passageira@example.test',
+        'senha' => Hash::make('senha-passageira-secreta'),
+        'cpf' => '52998224725',
+        'dataCadastro' => now(),
+        'statusConta' => 'Ativa',
+    ]);
+    PassageiroModel::create(['userId' => $passenger->userId, 'status' => 'Ativo']);
+
+    $this->get("/admin/contas/{$passenger->userId}")->assertRedirect('/admin/login');
+
+    createPanelAdministrator('Operador');
+    $this->post('/admin/login', [
+        'email' => 'operator@example.test',
+        'senha' => 'senha-master-segura',
+    ])->assertRedirect('/admin');
+    $this->get("/admin/contas/{$passenger->userId}")->assertForbidden();
+
+    $this->post('/admin/logout');
+    createPanelAdministrator();
+    $administrator = UserModel::where('email', 'master@example.test')->firstOrFail();
+    $this->post('/admin/login', [
+        'email' => 'master@example.test',
+        'senha' => 'senha-master-segura',
+    ])->assertRedirect('/admin');
+
+    Log::spy();
+    $this->get("/admin/contas/{$passenger->userId}")
+        ->assertOk()
+        ->assertSee('Passageira Exemplo')
+        ->assertSee('passageira@example.test')
+        ->assertDontSee('52998224725')
+        ->assertDontSee('senha-passageira-secreta');
+
+    Log::shouldHaveReceived('info')->once()->with(
+        'admin.account.profile_viewed',
+        Mockery::on(fn (array $context): bool =>
+            $context['administrator_user_id'] === $administrator->userId
+            && $context['viewed_user_id'] === $passenger->userId
+            && isset($context['viewed_at'])
+        )
+    );
 });
 
 it('allows only a Master to register Operators', function () {

@@ -1,10 +1,11 @@
 import { ThemedText as Text } from '../ui';
 import React, { useEffect, useState } from 'react';
-import { Pressable } from 'react-native';
-import { api, persistSession } from '../api';
+import { Alert, Pressable } from 'react-native';
+import { api } from '../api';
 import { Button, Card, Field, Page, s } from '../ui';
 import CepAddressLookup from '../components/CepAddressLookup';
 import { isValidCpf, isValidCnh } from '../utils/documentValidation';
+import { parseDateInput } from '../utils/dateInput';
 
 const initialForm = {
   nome: '',
@@ -30,7 +31,7 @@ const initialForm = {
   categoria: '',
 };
 
-export default function RegisterDriver({ go, setSession }) {
+export default function RegisterDriver({ go }) {
   const [form, setForm] = useState(initialForm);
   const [categories, setCategories] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -62,21 +63,25 @@ export default function RegisterDriver({ go, setSession }) {
       setError('CNH inválida. Confira os 11 dígitos.');
       return;
     }
+    const validadeCNH = parseDateInput(form.validadeCNH);
+    if (!validadeCNH) {
+      setError('Informe a validade da CNH no formato dd/mm/aaaa.');
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
         ...form,
         cpf: form.cpf.replace(/\D/g, ''),
         cnh: form.cnh.replace(/\D/g, ''),
+        validadeCNH,
         numeroTelefone: form.numeroTelefone.replace(/\D/g, ''),
         anoFabricacao: form.anoFabricacao ? Number(form.anoFabricacao) : null,
         anoModelo: form.anoModelo ? Number(form.anoModelo) : null,
       };
       const { data } = await api.post('/motorista/insert', payload);
-      const nextSession = { user: data.user, motorista: data.motorista, activeRide: null };
-      await persistSession(data.token, nextSession, false, data.expires_at);
-      setSession(nextSession);
-      go('Home');
+      Alert.alert('Cadastro recebido', data.message || 'Aguarde a aprovação do administrador para entrar no app.');
+      go('Login');
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -85,7 +90,7 @@ export default function RegisterDriver({ go, setSession }) {
   }
 
   return (
-    <Page title="Cadastro de motorista" go={go} back="Login" showMenu={false}>
+    <Page title="Cadastro de motorista" go={go} back="Login">
       <Text style={s.h2}>Dados pessoais</Text>
       <Field label="Nome completo" placeholder="Digite seu nome" value={form.nome} onChangeText={update('nome')} />
       <Field label="E-mail" placeholder="voce@exemplo.com" value={form.email} onChangeText={update('email')} keyboardType="email-address" />
@@ -109,7 +114,7 @@ export default function RegisterDriver({ go, setSession }) {
       <Field label="Estado (UF)" placeholder="Ex.: SP" value={form.estado} onChangeText={update('estado')} />
       <Text style={s.h2}>CNH e veículo</Text>
       <Field label="Número da CNH (11 dígitos)" placeholder="Somente números" value={form.cnh} onChangeText={(value) => update('cnh')(value.replace(/\D/g, '').slice(0, 11))} keyboardType="number-pad" />
-      <Field label="Validade da CNH" placeholder="AAAA-MM-DD" value={form.validadeCNH} onChangeText={update('validadeCNH')} />
+      <Field label="Validade da CNH" placeholder="dd/mm/aaaa" value={form.validadeCNH} onChangeText={update('validadeCNH')} keyboardType="number-pad" maxLength={10} />
       <Field label="Marca do veículo" placeholder="Marca" value={form.marca} onChangeText={update('marca')} />
       <Field label="Modelo do veículo" placeholder="Modelo" value={form.modelo} onChangeText={update('modelo')} />
       <Text style={s.h2}>Categoria do veículo</Text>
@@ -135,7 +140,7 @@ export default function RegisterDriver({ go, setSession }) {
       <Button onPress={register} disabled={loading || catalogLoading || !form.categoria}>
         {loading ? 'Cadastrando…' : catalogLoading ? 'Carregando…' : 'Criar conta de motorista'}
       </Button>
-      <Text style={s.muted}>Seu cadastro ficará pendente até um administrador conferir sua CNH e os documentos do veículo. Você poderá entrar no app, mas só receberá corridas depois da aprovação.</Text>
+      <Text style={s.muted}>Seu cadastro ficará pendente até um administrador conferir sua CNH e os documentos do veículo. Você poderá entrar após a aprovação.</Text>
     </Page>
   );
 }
